@@ -128,11 +128,13 @@ def main(args):
                 fp1 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=nBits)
                 fp2 = MACCSkeys.GenMACCSKeys(mol)
             if args.fp == 'maccs_rdk7': 
-                fp1 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=nBits)
-                fp2 = MACCSkeys.GenMACCSKeys(mol)
+                descriptors_to_calculate = MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
+                fp1 = MACCSkeys.GenMACCSKeys(mol)
+                fp2 = np.array(descriptors_to_calculate.CalcDescriptors(mol))
             if args.fp == 'ecfp4_rdk7': 
+                descriptors_to_calculate = MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
                 fp1 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=nBits)
-                fp2 = MACCSkeys.GenMACCSKeys(mol)
+                fp2 = np.array(descriptors_to_calculate.CalcDescriptors(mol))
 
             # adjacency & distance matrix based fingerprints
             if args.fp == 'dist_2D': fp = pad(Chem.rdmolops.GetDistanceMatrix(mol), mol.GetNumAtoms(), sort=0)
