@@ -5,17 +5,18 @@ import glob
 import numpy as np
 import os
 import pandas as pd
+from molvs import standardize_smiles
+from mordred import Calculator, descriptors
 from rdkit import Chem
 from rdkit.Avalon import pyAvalonTools as fpAvalon
 from rdkit.ML.Descriptors import MoleculeDescriptors
 from rdkit.Chem import AllChem, MACCSkeys, Descriptors, rdMolDescriptors
 import rdkit.Chem.MolStandardize.rdMolStandardize as rdMolStandardize
 from rdkit.Chem.SaltRemover import SaltRemover
-from molvs import standardize_smiles
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
-parser.add_argument("--fp", default="ecfp4", type=str, help="fingerprint type")
+parser.add_argument("--fp", default="mordred", type=str, help="fingerprint type")
 
 MAX_NUM_OF_ATOMS = 132  # maximal number of atoms in a molecule from Tox21 dataset after removing hydrogens
 MATRIX_SIZE = MAX_NUM_OF_ATOMS ** 2
@@ -69,6 +70,7 @@ def main(args):
         df.columns = ["smiles", "ID", "toxicity",]
         df = df.reset_index()  # make sure indexes pair with number of 
         remover = SaltRemover()
+        calc = Calculator(descriptors, ignore_3D=False)
         
         # parse ./tox21.data row by row
         for index, row in df.iterrows():
@@ -170,22 +172,27 @@ def main(args):
                     continue
                 fp = pad(w, mol.GetNumAtoms())
 
-            # fingerprint containing all available RDkit descriptors
-            # has a good performance, for benchmarking
+            # empirical physicochemical descriptors
             if args.fp == "rdkit_descr":
                 descriptors_to_calculate = MoleculeDescriptors.MolecularDescriptorCalculator([x[0] for x in Descriptors._descList])
                 fp = np.array(descriptors_to_calculate.CalcDescriptors(mol))
-
-
-            # appending fp and target_value to the output file
+            if args.fp == "mordred": 
+                fp = np.array(calc(mol), dtype=np.float32)
+            """
+            append fp and target_value to the output file and
+            sanitize nan and inf values, as it is difficult
+            to get rid of them later
+            """
             # mixed fingerprints
             if args.fp in ['ecfp4_maccs', 'maccs_rdk7', 'ecfp4_rdk7']:
+                fp1 = np.nan_to_num(fp1); fp2 = np.nan_to_num(fp2)
                 for value in np.nditer(fp1):
                     file.write("{:.6f}, ".format(value))
                 for value in np.nditer(fp2):
                     file.write("{:.6f}, ".format(value))
             # singular fingerprints
             else:
+                fp = np.nan_to_num(fp)
                 for value in np.nditer(fp):
                     file.write("{:.6f}, ".format(value))
             file.write(f"{target_value}\n")
