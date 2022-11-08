@@ -176,11 +176,13 @@ def main(args):
 
 
             # appending fp and target_value to the output file
-            if args.fp == 'ecfp4_maccs':
+            # mixed fingerprints
+            if args.fp in ['ecfp4_maccs', 'maccs_rdk7', 'ecfp4_rdk7']:
                 for value in np.nditer(fp1):
                     file.write("{:.6f}, ".format(value))
                 for value in np.nditer(fp2):
                     file.write("{:.6f}, ".format(value))
+            # singular fingerprints
             else:
                 for value in np.nditer(fp):
                     file.write("{:.6f}, ".format(value))
