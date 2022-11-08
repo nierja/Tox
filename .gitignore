@@ -1,0 +1,7 @@
+/*.e*
+/*.o*
+/lib/TOX_GPU_VENV/*
+/results/*
+/data/Tox21_dataset/*/*Zone*
+/data/Tox21_descriptors/*
+
