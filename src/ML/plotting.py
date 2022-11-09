@@ -24,7 +24,7 @@ def plot_ROCs(fprs: list, tprs: list, keys: list, nrows: int, ncols: int, model:
         ax.set(adjustable='box', aspect='equal')
         ax.label_outer()
     #plt.show()
-    plt.savefig(f'./Plots/ROC_plot_{model}_{target}.png', dpi=1200)
+    plt.savefig(f'../../results/plots/ROC_plot_{model}_{target}.png', dpi=1200)
 
 def plot_DimReds(reduction_type: str, positive: list, negative: list, keys: list, nrows: int, ncols: int, model: str, target: str) -> None:
     # create and save a multiplot of PCA graphs for all the fingerprints
@@ -48,4 +48,4 @@ def plot_DimReds(reduction_type: str, positive: list, negative: list, keys: list
         ax.set(xlabel=f'{reduction_type} feature 1', ylabel=f'{reduction_type} feature 2')
         #ax.set(adjustable='box', aspect='equal')
         ax.label_outer()
-    plt.savefig(f'./Plots/{reduction_type}_plot_{model}_{target}.png', dpi=1200)
+    plt.savefig(f'../../results/plots/{reduction_type}_plot_{model}_{target}.png', dpi=1200)

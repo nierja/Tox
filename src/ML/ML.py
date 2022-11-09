@@ -196,7 +196,7 @@ def main(args: argparse.Namespace) -> list:
 if __name__ == "__main__":
     args = parser.parse_args([] if "__file__" not in globals() else None)
     results = main(args)
-    with open(f"output_{args.target}.txt", "a") as output_file:
+    with open(f"../../results/logs/ML_output_{args.target}.txt", "a") as output_file:
         table = tabulate(results, headers=["fp_name", "acc", "balanced_acc", "roc"], floatfmt=(None, '.4f', '.2f',))
         output_file.write(f"\n{args.model} - {args.target} \nTest size = {args.test_size}\n" + table)
     print(table)
