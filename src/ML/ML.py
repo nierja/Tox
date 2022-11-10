@@ -38,7 +38,6 @@ parser.add_argument("--roc", default=False, type=bool, help="Plot the ROC_AUCs")
 parser.add_argument("--vis", default=None, type=str, help="Visualisation type [Isomap|NCA|SRP|tSVD|TSNE]")
 parser.add_argument("--pca", default=False, type=bool, help="Plot the PCAs")
 parser.add_argument("--pca_comps", default=20, type=int, help="dimensionality of space the dataset is reduced to using pca")
-parser.add_argument("--grid_search", default=True, type=bool, help="Perform hyperparameter optimisation, not supported for tf_cnn model")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--model", default="lr", type=str, help="Model to use")
 parser.add_argument("--scaler", default="StandardScaler", type=str, help="defines scaler to preprocess data")
@@ -68,10 +67,22 @@ def main(args: argparse.Namespace) -> list:
         df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_test.data")
         df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_eval.data")
 
-        df = pd.concat([df_train, df_test])
-
-        data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
+        data_train, target_train = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
+        data_test, target_test = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
         final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+        
+        data = np.concatenate((data_train, data_test), axis=0)
+        target = np.concatenate((target_train, target_test), axis=0)
+        
+        print(data_train[0][-1])
+
+        # df = df_train.append(df_test)
+# 
+        # data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
+        # final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+# 
+        # print(df_train[0][-1])
+        # print(data[0][-1])
 
         # perfoms the PCA transformation to R^{args.pca_comps} space
         if args.pca:
@@ -81,10 +92,6 @@ def main(args: argparse.Namespace) -> list:
             if args.pca_comps == 2:
                 positive_PCA_features.append(data[target[:] == 1])
                 negative_PCA_features.append(data[target[:] == 0])
-
-        # splitting dataset into a train set and a test set.
-        train_data, test_data, train_target, test_target = train_test_split(
-            data, target, test_size=args.test_size, random_state=args.seed)
 
         # train a model on the given dataset and store it in 'model'.
         if args.model in ["most_frequent", "stratified"]:
@@ -116,7 +123,7 @@ def main(args: argparse.Namespace) -> list:
                 ]
 
             # int_columns = []
-            float_columns = list(range(0,train_data.shape[1]))
+            float_columns = list(range(0,data.shape[1]))
             # print(float_columns)
             if args.scaler == "StandardScaler": 
                 model = sklearn.pipeline.Pipeline([
@@ -137,27 +144,23 @@ def main(args: argparse.Namespace) -> list:
                     ]))
                 ] + model)
 
-        if args.cv:
-            scores = sklearn.model_selection.cross_val_score(model, train_data, train_target, cv=args.cv)
-            print("Cross-validation with {} folds: {:.2f} +-{:.2f}".format(args.cv, 100 * scores.mean(), 100 * scores.std()))
+        # perform grid search with CV and find best parameters
+        parameters = grid_search_parameters.get_grid_search_parameters(args.model)
+        grid_search = GridSearchCV(model, parameters, n_jobs=-1, )
+        print(data, data.shape)
+        print(data[0][-1])
+        grid_search.fit(data, target)
+        print(f"\nBest hyperparameters:\n{grid_search.best_params_}\n")
 
-        # We now fit the constructed model
-        # we can either search for the hyperparameters, or fit the model with default hyperparameters
-        if args.grid_search:
-            parameters = grid_search_parameters.get_grid_search_parameters(args.model)
-            grid_search = GridSearchCV(model, parameters, n_jobs=-1)
-            grid_search.fit(train_data, train_target)
-            print(f"\nBest hyperparameters:\n{grid_search.best_params_}\n")
-            test_predictions = grid_search.best_estimator_.predict(test_data)
-            test_proba = grid_search.best_estimator_.predict_proba(test_data)
-        else:
-            # fitting sklearn models
-            model.fit(train_data, train_target)
-            test_predictions = model.predict(test_data)
-            test_proba = model.predict_proba(test_data)
+        # perform prediction on the final eval dataset using the best model
+        final_evaluation_predictions = grid_search.best_estimator_.predict(final_evaluation_data)
+        final_evaluation_proba = grid_search.best_estimator_.predict_proba(final_evaluation_data)
 
-        accuracy = accuracy_score(test_target, test_predictions)
-        balanced_accuracy = balanced_accuracy_score(test_target, test_predictions)
+        # compute the desired metrics
+        accuracy = accuracy_score(final_evaluation_target, final_evaluation_predictions)
+        balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
+        print(accuracy, balanced_accuracy)
+        break
 
         # Compute ROC curve and ROC area for each class
         fpr, tpr, roc_auc = {}, {}, {}
