@@ -19,7 +19,7 @@ import sklearn.preprocessing
 from sklearn.decomposition import IncrementalPCA, TruncatedSVD
 from sklearn.impute import SimpleImputer 
 from sklearn.manifold import TSNE, Isomap
-from sklearn.metrics import make_scorer, roc_curve, auc, accuracy_score, balanced_accuracy_score, f1_score
+from sklearn.metrics import make_scorer, roc_auc_score, auc, accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate
 from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from sklearn.random_projection import SparseRandomProjection
@@ -158,16 +158,20 @@ def main(args: argparse.Namespace) -> list:
         scores = cross_validate(
             grid_search.best_estimator_, data, target, cv=args.cv, scoring=scoring,
         )
+        # THESE are ok and can be logged
         print(scores)
 
         # perform prediction on the final eval dataset using the best model
         final_evaluation_predictions = grid_search.best_estimator_.predict(final_evaluation_data)
         final_evaluation_proba = grid_search.best_estimator_.predict_proba(final_evaluation_data)
 
-        # compute the desired metrics
+        # compute desired metrics for the prediction on the final evaluation set using the best model
         accuracy = accuracy_score(final_evaluation_target, final_evaluation_predictions)
         balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
-        print(accuracy, balanced_accuracy)
+        ### BUGGED
+        f1 = f1_score(final_evaluation_target, final_evaluation_predictions)
+        roc_auc = roc_auc_score(final_evaluation_target, final_evaluation_proba[:,1])
+        print(accuracy, balanced_accuracy, f1, roc_auc)
 
     return results
 
