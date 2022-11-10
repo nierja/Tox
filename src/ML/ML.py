@@ -62,27 +62,19 @@ def main(args: argparse.Namespace) -> list:
 
     for fp_name in fpdict_keys:
         print(fp_name, args.model, args.target)
-        # load the dataset and convert it into numpy arrays
+        # load the dataset
         df_train = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}.data")
         df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_test.data")
         df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_eval.data")
 
+        #  convert it into numpy arrays
         data_train, target_train = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
         data_test, target_test = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
         final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
         
+        # merge df_train and df_test for grid search
         data = np.concatenate((data_train, data_test), axis=0)
         target = np.concatenate((target_train, target_test), axis=0)
-        
-        print(data_train[0][-1])
-
-        # df = df_train.append(df_test)
-# 
-        # data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
-        # final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
-# 
-        # print(df_train[0][-1])
-        # print(data[0][-1])
 
         # perfoms the PCA transformation to R^{args.pca_comps} space
         if args.pca:
