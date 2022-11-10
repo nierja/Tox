@@ -33,15 +33,15 @@ print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs available")
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
-parser.add_argument("--cv", default=10, type=int, help="Cross-validate with given number of folds")
+parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
 parser.add_argument("--roc", default=False, type=bool, help="Plot the ROC_AUCs")
 parser.add_argument("--vis", default=None, type=str, help="Visualisation type [Isomap|NCA|SRP|tSVD|TSNE]")
 parser.add_argument("--pca", default=False, type=bool, help="Plot the PCAs")
 parser.add_argument("--pca_comps", default=20, type=int, help="dimensionality of space the dataset is reduced to using pca")
-parser.add_argument("--grid_search", default=False, type=bool, help="Perform hyperparameter optimisation, not supported for tf_cnn model")
+parser.add_argument("--grid_search", default=True, type=bool, help="Perform hyperparameter optimisation, not supported for tf_cnn model")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--model", default="lr", type=str, help="Model to use")
-parser.add_argument("--scaler", default="MaxAbsScaler", type=str, help="defines scaler to preprocess data")
+parser.add_argument("--scaler", default="StandardScaler", type=str, help="defines scaler to preprocess data")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
 def main(args: argparse.Namespace) -> list:
@@ -63,14 +63,17 @@ def main(args: argparse.Namespace) -> list:
 
     for fp_name in fpdict_keys:
         print(fp_name, args.model, args.target)
-        # load the training data, perform data cleaning and convert it into a numpy array
+        # load the dataset and convert it into numpy arrays
         df_train = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}.data")
         df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_test.data")
         df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_eval.data")
-        data, target = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
-        imputer = SimpleImputer(missing_values=np.nan,strategy = "mean")
 
-        # perfoms the PCA transformation to R^2 space
+        df = pd.concat([df_train, df_test])
+
+        data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
+        final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+
+        # perfoms the PCA transformation to R^{args.pca_comps} space
         if args.pca:
             transformer = IncrementalPCA(n_components=args.pca_comps)
             data = sparse.csr_matrix(data)
