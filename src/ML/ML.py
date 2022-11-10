@@ -20,7 +20,7 @@ from sklearn.decomposition import IncrementalPCA, TruncatedSVD
 from sklearn.impute import SimpleImputer 
 from sklearn.manifold import TSNE, Isomap
 from sklearn.metrics import make_scorer, roc_curve, auc, accuracy_score, balanced_accuracy_score, f1_score
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate
 from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from sklearn.random_projection import SparseRandomProjection
 
@@ -147,11 +147,18 @@ def main(args: argparse.Namespace) -> list:
         # perform grid search with CV and find best parameters
         parameters = grid_search_parameters.get_grid_search_parameters(args.model)
         grid_search = GridSearchCV(
-            model, parameters, n_jobs=-1, scoring=scoring, refit="AUC",
-            return_train_score=True,
+            model, parameters, cv=args.cv, n_jobs=-1, scoring=scoring, refit="AUC", return_train_score=False,
         )
         grid_search.fit(data, target)
+        results = grid_search.cv_results_
+        print(results)
         print(f"\nBest hyperparameters:\n{grid_search.best_params_}\n")
+
+        # get crossvalidated metrics for the best model
+        scores = cross_validate(
+            grid_search.best_estimator_, data, target, cv=args.cv, scoring=scoring,
+        )
+        print(scores)
 
         # perform prediction on the final eval dataset using the best model
         final_evaluation_predictions = grid_search.best_estimator_.predict(final_evaluation_data)
@@ -161,41 +168,6 @@ def main(args: argparse.Namespace) -> list:
         accuracy = accuracy_score(final_evaluation_target, final_evaluation_predictions)
         balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
         print(accuracy, balanced_accuracy)
-        break
-
-        # Compute ROC curve and ROC area for each class
-        fpr, tpr, roc_auc = {}, {}, {}
-        for i in range(args.n_classes):
-            fpr[i], tpr[i], _ = roc_curve(test_target.ravel(), test_proba[:, i].ravel())
-            roc_auc[i] = auc(fpr[i], tpr[i])
-        # Compute micro-average ROC curve and ROC area - micro-average NOT OK
-        fpr["micro"], tpr["micro"], _ = roc_curve(test_target.ravel(), (test_proba[:,1]).ravel())
-        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-        # store data for future plotting and console output
-        results.append((fp_name, accuracy, balanced_accuracy, roc_auc["micro"])); 
-        y_true.append(test_target); y_predicted_proba.append(test_proba)
-        fprs.append(fpr["micro"]); tprs.append(tpr["micro"])
-
-        # perfoms selected projection of training data to R^2 space
-        if args.vis != None:
-            # load the training data anew, since they were distorted with PCA
-            df = pd.read_csv(f"Tox21_data/{args.target}/{args.target}_{fp_name}.data")
-            df = df[~df.isin([np.nan, np.inf, -np.inf]).any(1)]
-            data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
-            imputer = SimpleImputer(missing_values=np.nan,strategy = "mean") 
-            data = imputer.fit_transform(data)
-
-            if args.vis == "Isomap": data = Isomap(n_components=args.n_classes).fit_transform(data)
-            if args.vis == "NCA": data = NeighborhoodComponentsAnalysis(n_components=args.n_classes, init="pca",).fit_transform(data, target)
-            if args.vis == "SRP": data = SparseRandomProjection(n_components=args.n_classes,).fit_transform(data)
-            if args.vis == "TSNE": data = TSNE(n_components=args.n_classes, learning_rate='auto', init='random').fit_transform(data)
-            if args.vis == "tSVD": data = TruncatedSVD(n_components=args.n_classes).fit_transform(data)
-            positive_vis_features.append(data[target[:] == 1])
-            negative_vis_features.append(data[target[:] == 0])
-
-    if args.roc: plotting.plot_ROCs(fprs, tprs, fpdict_keys, nrows=2, ncols=3, model=args.model, target=args.target)
-    if args.vis != None: plotting.plot_DimReds(args.vis, positive_vis_features, negative_vis_features, fpdict_keys, nrows=2, ncols=3, model=args.model, target=args.target)
-    if args.pca and args.pca_comps == 2: plotting.plot_DimReds("PCA", positive_PCA_features, negative_PCA_features, fpdict_keys, nrows=2, ncols=3, model=args.model, target=args.target)
 
     return results
 
