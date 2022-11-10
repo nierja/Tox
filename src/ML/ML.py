@@ -19,7 +19,7 @@ import sklearn.preprocessing
 from sklearn.decomposition import IncrementalPCA, TruncatedSVD
 from sklearn.impute import SimpleImputer 
 from sklearn.manifold import TSNE, Isomap
-from sklearn.metrics import roc_curve, auc, accuracy_score, balanced_accuracy_score
+from sklearn.metrics import make_scorer, roc_curve, auc, accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from sklearn.random_projection import SparseRandomProjection
@@ -136,11 +136,20 @@ def main(args: argparse.Namespace) -> list:
                     ]))
                 ] + model)
 
+        # define metrics to be tracked in the grid search
+        scoring = {
+            "AUC": "roc_auc",
+            "acc": make_scorer(accuracy_score),
+            "balanced_acc": make_scorer(balanced_accuracy_score),
+            "f1_score": make_scorer(f1_score),
+        }
+
         # perform grid search with CV and find best parameters
         parameters = grid_search_parameters.get_grid_search_parameters(args.model)
-        grid_search = GridSearchCV(model, parameters, n_jobs=-1, )
-        print(data, data.shape)
-        print(data[0][-1])
+        grid_search = GridSearchCV(
+            model, parameters, n_jobs=-1, scoring=scoring, refit="AUC",
+            return_train_score=True,
+        )
         grid_search.fit(data, target)
         print(f"\nBest hyperparameters:\n{grid_search.best_params_}\n")
 
