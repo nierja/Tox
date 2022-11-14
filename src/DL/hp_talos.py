@@ -15,7 +15,6 @@ from sklearn.metrics import balanced_accuracy_score
 import os
 import tensorflow as tf
 from tensorflow import keras
-import tensorflow_model_analysis as tfma
 import talos
 
 gpus = tf.config.list_physical_devices('GPU'); logical_gpus = tf.config.list_logical_devices('GPU')
@@ -38,11 +37,20 @@ def main(args: argparse.Namespace) -> list:
     # We are training a model.
     np.random.seed(args.seed)
 
-    print(args.fp, args.target)
-    # load the training data, perform data cleaning and convert it into a numpy array
-    df = pd.read_csv(f"Tox21_data/{args.target}/{args.target}_{args.fp}.data")
-    df.replace([np.inf, -np.inf], np.nan, inplace=True, ); df.dropna(inplace=True)
-    data, target = df.iloc[:, 0:-2].to_numpy(), df.iloc[:, -1].to_numpy()
+    print(args.fp, args.NN_type, args.target)
+    # load the dataset
+    df_train = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}.data")
+    df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_test.data")
+    df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_eval.data")
+
+    #  convert it into numpy arrays
+    data_train, target_train = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
+    data_test, target_test = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
+    final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+        
+    # merge df_train and df_test for grid search
+    data = np.concatenate((data_train, data_test), axis=0)
+    target = np.concatenate((target_train, target_test), axis=0)
 
     # perfoms the PCA transformation to R^2 space
     if args.pca:
@@ -57,9 +65,10 @@ def main(args: argparse.Namespace) -> list:
     # scale the data to have zero mean and unit variance
     scaler = sklearn.preprocessing.StandardScaler()
     data = scaler.fit_transform(data)
+    final_evaluation_data = scaler.fit_transform(final_evaluation_data)
 
     # splitting dataset into a train set and a test set.
-    train_data, test_data, train_target, test_target = train_test_split(
+    train_data, validation_data, train_target, validation_target = train_test_split(
         data, target, test_size=args.test_size, random_state=args.seed)
 
     # create parameter dict
@@ -159,12 +168,6 @@ def main(args: argparse.Namespace) -> list:
         else:
             best_params[key] = best_model.iloc[0][key]
     print(best_params)
-
-    # import visualkeras
-    # _, model = tox_model(train_data, train_target, test_data, test_target, best_params)
-    # visualkeras.layered_view(model).show() # display using your system viewer
-    # visualkeras.layered_view(model, to_file='./Plots/visualkeras_output_CNN.png') # write to disk
-    # visualkeras.layered_view(model, to_file='./Plots/visualkeras_output_CNN.png').show() # write and show
     
     # perform k-fold crossvalidation
     # as in https://stackoverflow.com/questions/66695848/kfold-cross-validation-in-tensorflow
@@ -175,10 +178,7 @@ def main(args: argparse.Namespace) -> list:
         tf.keras.backend.clear_session()
 
         # get the model
-        _, seq_model = tox_model(train_data, train_target, test_data, test_target, best_params)
-
-        train_data = scaler.fit_transform(train_data)
-        test_data = scaler.transform(test_data)
+        _, seq_model = tox_model(train_data, train_target, validation_data, validation_target, best_params)
 
         # run the model 
         seq_model.fit(
