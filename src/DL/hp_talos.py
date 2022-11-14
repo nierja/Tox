@@ -57,6 +57,8 @@ def main(args: argparse.Namespace) -> list:
         transformer = IncrementalPCA(n_components=args.pca)
         data = sparse.csr_matrix(data)
         data = transformer.fit_transform(data)
+        final_evaluation_data = sparse.csr_matrix(final_evaluation_data)
+        final_evaluation_data = transformer.fit_transform(final_evaluation_data)
     # for CNN, transform the data into 3D tensor
     if args.NN_type == "CNN":
         data.reshape(data.shape[0],data.shape[1],1)
@@ -178,7 +180,7 @@ def main(args: argparse.Namespace) -> list:
         tf.keras.backend.clear_session()
 
         # get the model
-        _, seq_model = tox_model(train_data, train_target, validation_data, validation_target, best_params)
+        _, seq_model = tox_model(train_data, train_target, validation_data, validation_target, best_params) 
 
         # run the model 
         seq_model.fit(
@@ -199,52 +201,65 @@ def main(args: argparse.Namespace) -> list:
         # calculate pridictions on the validation set to get the validation balanced accuracy
         predictions = seq_model.predict(data[test])
         test_predictions = (predictions > 0.5).astype("int32")
-        _ = np.ones((predictions.shape))
-        test_proba = np.column_stack((_, predictions))
-        test_proba[:, 0] -= test_proba[:, 1]
-        balanced_accuracy = balanced_accuracy_score(target[test], test_predictions)
-        print(balanced_accuracy)
-        print("\n\n")
+        balanced_accuracy_scores.append(balanced_accuracy_score(target[test], test_predictions))
 
+    # get results on the final evaluation dataset for the best model
+    tf.keras.backend.clear_session()
+    _, seq_model = tox_model(train_data, train_target, validation_data, validation_target, best_params) 
+    # run the model 
+    seq_model.fit(
+        data, 
+        target,
+        epochs=best_params['epochs'],
+        batch_size=best_params['batch_size'],
+        validation_data=(final_evaluation_data, final_evaluation_target),
+        verbose=0,
+    )
+    # get final metrics
+    roc_auc = seq_model.history.history['val_auc'][-1]
+    accuracy = seq_model.history.history['val_accuracy'][-1]
+    f1 = seq_model.history.history['val_f1score'][-1]
+    final_evaluation_predictions = seq_model.predict(final_evaluation_data)
+    final_evaluation_predictions = (final_evaluation_predictions > 0.5).astype("int32")
+    balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
+        
+    # print(final_evaluation_target, final_evaluation_predictions)
+    print(accuracy, balanced_accuracy, f1, roc_auc)
 
-        balanced_accuracy_scores.append(balanced_accuracy)
-        # seq_model.save_weights(f'wg_{args.cv}.txt')
-
-    print(auc_scores)
     # log data into a csv file
-    file_path = f'./Results/talos_hp_results_{args.target}.csv'
+    file_path = f'../../results/logs/DL_{args.target}.csv'
     if not os.path.isfile(file_path): 
         # create a csv header if the file doesn't exist
         with open(file_path, 'w') as f:
             print(
-                "NN;NN_layers;fp;pca;\
-                best_val_auc;crossval_auc;crossval_auc_std;\
-                crossval_balanced_acc;crossval_balanced_acc_std;\
-                crossval_acc;crossval_acc_std;\
-                crossval_F1;crossval_F1_std;\
-                best_params", file=f
+                "dataset;model;model_info;fp;pca;"\
+                "best_val_auc;crossval_auc;crossval_auc_std;"\
+                "best_balanced_acc;crossval_balanced_acc;crossval_balanced_acc_std;"\
+                "best_acc;crossval_acc;crossval_acc_std;"\
+                "best_F1;crossval_F1;crossval_F1_std;"\
+                "best_params", file=f
             )
 
     with open(file_path, 'a') as f:
         print(
-        f"{args.NN_type};{args.n_layers};{args.fp};{args.pca};\
-        {analyze_object.data.val_auc.max()};{np.array(auc_scores).mean()};{np.array(auc_scores).std()};\
-        {np.array(balanced_accuracy_scores).mean()};{np.array(balanced_accuracy_scores).std()};\
-        {np.array(accuracy_scores).mean()};{np.array(accuracy_scores).std()};\
-        {np.array(F1_scores).mean()};{np.array(F1_scores).std()};\
-        {best_params}", file=f
+        f"Tox21;{args.NN_type};{args.n_layers};{args.fp};{args.pca};"\
+        f"{roc_auc};{np.array(auc_scores).mean()};{np.array(auc_scores).std()};"\
+        f"{balanced_accuracy};{np.array(balanced_accuracy_scores).mean()};{np.array(balanced_accuracy_scores).std()};"\
+        f"{accuracy};{np.array(accuracy_scores).mean()};{np.array(accuracy_scores).std()};"\
+        f"{f1};{np.array(F1_scores).mean()};{np.array(F1_scores).std()};"\
+        f"{best_params}", file=f
     )
     
     # print to stdout as well
-    print(f"fp={args.fp}, pca={args.pca}, val_auc={analyze_object.data.val_auc.max()}, best_params={best_params}")
+    print(f"fp={args.fp}, pca={args.pca}, best_validation_roc_auc={roc_auc}, best_params={best_params}")
     print(f"{args.cv}-fold crossvalidation auc = {np.array(auc_scores).mean()} +- {np.array(auc_scores).std()}")
     print(
-        f"{args.NN_type};{args.n_layers};{args.fp};{args.pca};"\
-        f"{analyze_object.data.val_auc.max()};{np.array(auc_scores).mean()};{np.array(auc_scores).std()};"\
-        f"{np.array(balanced_accuracy_scores).mean()};{np.array(balanced_accuracy_scores).std()};"\
-        f"{np.array(accuracy_scores).mean()};{np.array(accuracy_scores).std()};"\
-        f"{np.array(F1_scores).mean()};{np.array(F1_scores).std()};"\
-        f"{best_params}"\
+        f"Tox21;{args.NN_type};{args.n_layers};{args.fp};{args.pca};"\
+        f"{roc_auc};{np.array(auc_scores).mean()};{np.array(auc_scores).std()};"\
+        f"{balanced_accuracy};{np.array(balanced_accuracy_scores).mean()};{np.array(balanced_accuracy_scores).std()};"\
+        f"{accuracy};{np.array(accuracy_scores).mean()};{np.array(accuracy_scores).std()};"\
+        f"{f1};{np.array(F1_scores).mean()};{np.array(F1_scores).std()};"\
+        f"{best_params}"
     )
     return 0
 
