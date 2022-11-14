@@ -19,7 +19,7 @@ import sklearn.preprocessing
 from sklearn.decomposition import IncrementalPCA, TruncatedSVD
 from sklearn.impute import SimpleImputer 
 from sklearn.manifold import TSNE, Isomap
-from sklearn.metrics import make_scorer, roc_auc_score, auc, accuracy_score, balanced_accuracy_score, f1_score
+from sklearn.metrics import make_scorer, roc_auc_score, auc, accuracy_score, balanced_accuracy_score, f1_score, precision_recall_fscore_support, fbeta_score, recall_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate
 from sklearn.neighbors import NeighborhoodComponentsAnalysis
 from sklearn.random_projection import SparseRandomProjection
@@ -37,7 +37,7 @@ parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given
 parser.add_argument("--roc", default=False, type=bool, help="Plot the ROC_AUCs")
 parser.add_argument("--vis", default=None, type=str, help="Visualisation type [Isomap|NCA|SRP|tSVD|TSNE]")
 parser.add_argument("--pca", default=False, type=bool, help="Plot the PCAs")
-parser.add_argument("--pca_comps", default=20, type=int, help="dimensionality of space the dataset is reduced to using pca")
+parser.add_argument("--pca_comps", default=50, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--model", default="lr", type=str, help="Model to use")
 parser.add_argument("--scaler", default="StandardScaler", type=str, help="defines scaler to preprocess data")
@@ -168,10 +168,27 @@ def main(args: argparse.Namespace) -> list:
         # compute desired metrics for the prediction on the final evaluation set using the best model
         accuracy = accuracy_score(final_evaluation_target, final_evaluation_predictions)
         balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
-        ### BUGGED
-        f1 = f1_score(final_evaluation_target, final_evaluation_predictions)
+        f1 = f1_score(final_evaluation_target, final_evaluation_predictions, labels=[0,1])
         roc_auc = roc_auc_score(final_evaluation_target, final_evaluation_proba[:,1])
+
+        # print(final_evaluation_target, final_evaluation_predictions)
         print(accuracy, balanced_accuracy, f1, roc_auc)
+        
+        # print(f1_score(final_evaluation_target, final_evaluation_predictions, labels=[0,1], average='micro'))
+        # print(f1_score(final_evaluation_target, final_evaluation_predictions, labels=[0,1], average='macro'))
+        # print(f1_score(final_evaluation_target, final_evaluation_predictions, labels=[0,1], average='weighted'))        
+
+        # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, average='macro'), labels=[0,1])
+        # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, average='micro'), labels=[0,1])
+        # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, average='weighted'), labels=[0,1])
+        # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, average='binary'), labels=[0,1])
+
+        # print(recall_score(final_evaluation_target, final_evaluation_predictions))
+        # print(f1_score(final_evaluation_target, final_evaluation_predictions))
+        # print(fbeta_score(final_evaluation_target, final_evaluation_predictions, beta=0.5))
+        # print(fbeta_score(final_evaluation_target, final_evaluation_predictions, beta=1))
+        # print(fbeta_score(final_evaluation_target, final_evaluation_predictions, beta=2))
+        # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, beta=0.5))
 
     return results
 
