@@ -3,9 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from tabulate import tabulate
 import grid_search_parameters
-import plotting
 
 import sklearn.cluster
 import sklearn.compose
@@ -151,6 +149,7 @@ def main(args: argparse.Namespace) -> list:
         )
         grid_search.fit(data, target)
         results = grid_search.cv_results_
+        best_params = grid_search.best_params_
         print(results)
         print(f"\nBest hyperparameters:\n{grid_search.best_params_}\n")
 
@@ -159,7 +158,7 @@ def main(args: argparse.Namespace) -> list:
             grid_search.best_estimator_, data, target, cv=args.cv, scoring=scoring,
         )
         # THESE are ok and can be logged
-        print(scores)
+        # print(scores)
 
         # perform prediction on the final eval dataset using the best model
         final_evaluation_predictions = grid_search.best_estimator_.predict(final_evaluation_data)
@@ -168,7 +167,7 @@ def main(args: argparse.Namespace) -> list:
         # compute desired metrics for the prediction on the final evaluation set using the best model
         accuracy = accuracy_score(final_evaluation_target, final_evaluation_predictions)
         balanced_accuracy = balanced_accuracy_score(final_evaluation_target, final_evaluation_predictions)
-        f1 = f1_score(final_evaluation_target, final_evaluation_predictions, labels=[0,1])
+        f1 = f1_score(final_evaluation_target, final_evaluation_predictions)
         roc_auc = roc_auc_score(final_evaluation_target, final_evaluation_proba[:,1])
 
         # print(final_evaluation_target, final_evaluation_predictions)
@@ -190,13 +189,44 @@ def main(args: argparse.Namespace) -> list:
         # print(fbeta_score(final_evaluation_target, final_evaluation_predictions, beta=2))
         # print(precision_recall_fscore_support(final_evaluation_target, final_evaluation_predictions, beta=0.5))
 
-    return results
+        # log data into a csv file
+        file_path = f'../../results/logs/ML_{args.target}.csv'
+        if not os.path.isfile(file_path): 
+            # create a csv header if the file doesn't exist
+            with open(file_path, 'w') as f:
+                print(
+                    "dataset;model;model_info;fp;pca;"\
+                    "best_val_auc;crossval_auc;crossval_auc_std;"\
+                    "best_balanced_acc;crossval_balanced_acc;crossval_balanced_acc_std;"\
+                    "best_acc;crossval_acc;crossval_acc_std;"\
+                    "best_F1;crossval_F1;crossval_F1_std;"\
+                    "best_params", file=f
+                )
+
+        with open(file_path, 'a') as f:
+            print(
+            f"Tox21;{args.model};-;{fp_name};{args.pca};"\
+            f"{roc_auc};{scores['test_AUC'].mean()};{scores['test_AUC'].std()};"\
+            f"{balanced_accuracy};{scores['test_balanced_acc'].mean()};{scores['test_balanced_acc'].std()};"\
+            f"{accuracy};{scores['test_acc'].mean()};{scores['test_acc'].std()};"\
+            f"{f1};{scores['test_f1_score'].mean()};{scores['test_f1_score'].std()};"\
+            f"{best_params}", file=f
+        )
+    
+        # print to stdout as well
+        print(f"fp={fp_name}, pca={args.pca}, best_validation_roc_auc={roc_auc}, best_params={best_params}")
+        print(f"{args.cv}-fold crossvalidation auc = {scores['test_AUC'].mean()} +- {scores['test_AUC'].std()}")
+        print(
+            f"Tox21;{args.model};-;{fp_name};{args.pca};"\
+            f"{roc_auc};{scores['test_AUC'].mean()};{scores['test_AUC'].std()};"\
+            f"{balanced_accuracy};{scores['test_balanced_acc'].mean()};{scores['test_balanced_acc'].std()};"\
+            f"{accuracy};{scores['test_acc'].mean()};{scores['test_acc'].std()};"\
+            f"{f1};{scores['test_f1_score'].mean()};{scores['test_f1_score'].std()};"\
+            f"{best_params}"
+        )
+    return 0
 
 
 if __name__ == "__main__":
     args = parser.parse_args([] if "__file__" not in globals() else None)
-    results = main(args)
-    with open(f"../../results/logs/ML_output_{args.target}.txt", "a") as output_file:
-        table = tabulate(results, headers=["fp_name", "acc", "balanced_acc", "roc"], floatfmt=(None, '.4f', '.2f',))
-        output_file.write(f"\n{args.model} - {args.target} \nTest size = {args.test_size}\n" + table)
-    print(table)
+    main(args)
