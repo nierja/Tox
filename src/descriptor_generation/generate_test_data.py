@@ -16,7 +16,7 @@ from rdkit.Chem.SaltRemover import SaltRemover
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
-parser.add_argument("--fp", default="maccs", type=str, help="fingerprint type")
+parser.add_argument("--fp", default="mordred", type=str, help="fingerprint type")
 
 MAX_NUM_OF_ATOMS = 132  # maximal number of atoms in a molecule from Tox21 dataset after removing hydrogens
 MATRIX_SIZE = MAX_NUM_OF_ATOMS ** 2
@@ -174,7 +174,6 @@ def main(args):
                 fp = np.array(descriptors_to_calculate.CalcDescriptors(mol))
             if args.fp == "mordred": 
                 fp = np.array(calc(mol), dtype=np.float32)
-                print(fp[1170])
             """
             append fp and target_value to the output file and
             sanitize nan and inf values, as it is difficult
