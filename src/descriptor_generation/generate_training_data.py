@@ -103,7 +103,7 @@ def main(args):
             mol = Chem.AddHs(mol)
             try:
                 AllChem.EmbedMolecule(mol)
-                AllChem.UFFOptimizeMolecule(mol)
+                AllChem.UFFOptimizeMoleculeConfs(mol)
                 mol = Chem.RemoveHs(mol)
             except ValueError:
                 continue
