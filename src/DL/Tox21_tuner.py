@@ -16,6 +16,7 @@ import pandas as pd
 import datetime
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, roc_auc_score, auc, accuracy_score, balanced_accuracy_score, f1_score, precision_recall_fscore_support, fbeta_score, recall_score
 
 spacer = '------------------------------------------------------------------------'
@@ -130,7 +131,7 @@ def main(args: argparse.Namespace) -> list:
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=log_dir)
 
     tuner = kt.Hyperband(model_builder,
-                        objective=kt.Objective("val_auc", direction="max"),
+                        objective=kt.Objective("auc", direction="max"),
                         max_epochs=10,
                         factor=3,
                         directory=log_dir,
@@ -138,7 +139,7 @@ def main(args: argparse.Namespace) -> list:
                         )
 
     stop_early = tf.keras.callbacks.EarlyStopping(
-        monitor='val_auc', 
+        monitor='auc', 
         verbose=1,
         patience=20,
         mode='max',
@@ -159,37 +160,66 @@ def main(args: argparse.Namespace) -> list:
     model = tuner.hypermodel.build(best_hps)
     history = model.fit(train_features, train_labels, epochs=50, validation_split=0.2, class_weight=class_weight, )
 
+    # calculate the optimal number of epochs
     val_acc_per_epoch = history.history['val_accuracy']
     best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
     print('Best epoch: %d' % (best_epoch,))
+
+    # perform the crossvalidation of the best model
+    kfold = KFold(n_splits=args.cv, shuffle=True)
+    auc_per_fold = []; loss_per_fold = []
+
+    fold_no = 1
+    for train, test in kfold.split(train_features, train_labels):
+        history = model.fit(
+            train_features[train], 
+            train_labels[train],
+            epochs=best_epoch,
+            class_weight=class_weight, 
+            callbacks=[stop_early]
+        )
+      
+        # Generate generalization metrics
+        scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
+        auc = scores[9]
+        print(f'Score for fold {fold_no}: "auc" = {auc}')
+        print(spacer)
+        auc_per_fold.append(scores[9])
+        loss_per_fold.append(scores[0])
+
+        # Increase fold number
+        fold_no += 1
+
+    print(f'{args.cv}-fold CV: "auc_CV" = {np.array(auc_per_fold).mean()}+-{np.array(auc_per_fold).std()}')
+    print(f'{args.cv}-fold CV: "loss_CV" = {np.array(loss_per_fold).mean()}+-{np.array(loss_per_fold).std()}')
 
     # recreate the best model several times and traind the individual
     # instances for the best number of epochs
     hypermodel1 = tuner.hypermodel.build(best_hps)
     hypermodel2 = tuner.hypermodel.build(best_hps)
     hypermodel3 = tuner.hypermodel.build(best_hps)
-    hypermodel4 = tuner.hypermodel.build(best_hps)
-    hypermodel5 = tuner.hypermodel.build(best_hps)
-    hypermodel6 = tuner.hypermodel.build(best_hps)
-    hypermodel7 = tuner.hypermodel.build(best_hps)
-    hypermodel8 = tuner.hypermodel.build(best_hps)
-    hypermodel9 = tuner.hypermodel.build(best_hps)
-    hypermodel10 = tuner.hypermodel.build(best_hps)
-    hypermodel11 = tuner.hypermodel.build(best_hps)
+    # hypermodel4 = tuner.hypermodel.build(best_hps)
+    # hypermodel5 = tuner.hypermodel.build(best_hps)
+    # hypermodel6 = tuner.hypermodel.build(best_hps)
+    # hypermodel7 = tuner.hypermodel.build(best_hps)
+    # hypermodel8 = tuner.hypermodel.build(best_hps)
+    # hypermodel9 = tuner.hypermodel.build(best_hps)
+    # hypermodel10 = tuner.hypermodel.build(best_hps)
+    # hypermodel11 = tuner.hypermodel.build(best_hps)
 
     hypermodels = [
         hypermodel1,
         hypermodel2,
-        hypermodel3,
-        hypermodel4,
-        hypermodel5,
-        hypermodel6,
-        hypermodel7,
-        hypermodel8,
-        hypermodel9,
-        hypermodel10,
-        hypermodel11,
-    ]
+        hypermodel3, ]
+    #     hypermodel4,
+    #     hypermodel5,
+    #     hypermodel6,
+    #     hypermodel7,
+    #     hypermodel8,
+    #     hypermodel9,
+    #     hypermodel10,
+    #     hypermodel11,
+    # ]
 
     # Retrain the models with optimal number of epochs
     for hypermodel in hypermodels:
