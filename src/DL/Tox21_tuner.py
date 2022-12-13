@@ -13,6 +13,7 @@ import keras_tuner as kt
 import argparse
 import numpy as np
 import pandas as pd
+import os
 import sys
 import datetime
 
@@ -30,8 +31,8 @@ parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden la
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
-parser.add_argument("--fp", default="mordred", type=str, help="Fingerprint to use")
-parser.add_argument("--weighted", default=True, type=bool, help="Set class weights")
+parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
+parser.add_argument("--weighted", default=False, type=bool, help="Set class weights")
 parser.add_argument("--pca", default=0, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
@@ -129,7 +130,7 @@ def main(args: argparse.Namespace) -> int:
             model.add(
                 keras.layers.Dense(
                     # Tune number of units separately.
-                    units=hp.Int(f"units_{i}", min_value=256, max_value=1024, step=256),
+                    units=hp.Int(f"units_{i}", min_value=256, max_value=256, step=256),
                     activation=hp.Choice("activation", ["relu"]),
                 )
             )
@@ -166,7 +167,7 @@ def main(args: argparse.Namespace) -> int:
                         max_epochs=10,
                         factor=3,
                         directory=log_dir,
-                        project_name='intro_to_kt'
+                        project_name='intro_to_kt',
                         )
 
     stop_early = tf.keras.callbacks.EarlyStopping(
@@ -174,7 +175,8 @@ def main(args: argparse.Namespace) -> int:
         verbose=1,
         patience=20,
         mode='max',
-        restore_best_weights=True)
+        restore_best_weights=True
+    )
         
     tuner.search(train_features, train_labels, epochs=50, validation_split=0.2, callbacks=[stop_early,tensorboard_callback])
 
@@ -200,7 +202,10 @@ def main(args: argparse.Namespace) -> int:
     best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
     print('Best epoch: %d' % (best_epoch,))
 
-    # perform the crossvalidation of the best model
+    """
+        Perform k-fold crossvalidation on the best model
+        
+    """
     kfold = KFold(n_splits=args.cv, shuffle=True)
     auc_per_fold = []; loss_per_fold = []
 
@@ -216,9 +221,25 @@ def main(args: argparse.Namespace) -> int:
       
         # Generate generalization metrics
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
+        for name, value in zip(model.metrics_names, scores):
+            print(name, ': ', value)
+            if name == "tp" : tp = value
+            if name == "fp" : fp = value
+            if name == "tn" : tn = value
+            if name == "fn" : fn = value
+
+        tpr = tp / ( tp + fn )
+        tnr = tn / ( tn + fp )
+
+        print( "\n\n\n", spacer, "\n\n\n" )
+
+        print('f1', ': ', tp / ( tp + 0.5 * ( fp + fn ) ) )
+        print('ba', ': ', ( tpr + tnr ) / 2 )
+
         auc = scores[9]
         print(f'Score for fold {fold_no}: "auc" = {auc}')
         print(spacer)
+        print(scores)
         auc_per_fold.append(scores[9])
         loss_per_fold.append(scores[0])
 
@@ -287,6 +308,21 @@ def main(args: argparse.Namespace) -> int:
     print(ensemble_model.metrics_names)
     print("METRICS:", eval_result)
     print(spacer)
+
+
+    # log data into a csv file
+    file_path = f'../../results/logs/DL_{args.target}.csv'
+    if not os.path.isfile(file_path): 
+        # create a csv header if the file doesn't exist
+        ...
+
+    with open(file_path, 'a') as f:
+        # log parameters
+        ...
+    
+    # print to STDOUT
+    ...
+
     return 0
 
 if __name__ == "__main__":
