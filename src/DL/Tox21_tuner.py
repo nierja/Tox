@@ -31,7 +31,7 @@ parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="mordred", type=str, help="Fingerprint to use")
-parser.add_argument("--pca", default=1000, type=int, help="dimensionality of space the dataset is reduced to using pca")
+parser.add_argument("--pca", default=1024, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
 def main(args: argparse.Namespace) -> list:
@@ -48,17 +48,22 @@ def main(args: argparse.Namespace) -> list:
     val_features, val_labels = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
     test_features, test_labels = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
 
+    # perfoms the PCA transformation to R^{args.pca} space
+    if args.pca:
+        print(train_features.shape, val_features.shape, test_features.shape)
+        data = np.concatenate((train_features, val_features, test_features), axis=0)
+        transformer = IncrementalPCA(batch_size=2048, n_components=args.pca)
+        data = sparse.csr_matrix(data)
+        data = transformer.fit_transform(data)
+
+        train_features = data[0:train_features.shape[-2],:]
+        val_features = data[train_features.shape[-2]:train_features.shape[-2]+val_features.shape[-2],:]
+        test_features = data[train_features.shape[-2]+val_features.shape[-2]:,:]
+        print(train_features.shape, val_features.shape, test_features.shape)
+
     # Optionaly, merge the train and validation datasets
     train_labels = np.concatenate((train_labels, val_labels), axis=0)
     train_features = np.concatenate((train_features, val_features), axis=0)
-
-    # perfoms the PCA transformation to R^{args.pca} space
-    if args.pca:
-        transformer = IncrementalPCA(n_components=args.pca)
-        train_features = sparse.csr_matrix(train_features)
-        train_features = transformer.fit_transform(train_features)
-        test_features = sparse.csr_matrix(test_features)
-        test_features = transformer.fit_transform(test_features)
 
     # count the number of positive and negative molecules
     neg, pos = np.bincount(train_labels.astype(int))
