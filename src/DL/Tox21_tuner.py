@@ -31,10 +31,19 @@ parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="mordred", type=str, help="Fingerprint to use")
-parser.add_argument("--pca", default=1024, type=int, help="dimensionality of space the dataset is reduced to using pca")
+parser.add_argument("--weighted", default=True, type=bool, help="Set class weights")
+parser.add_argument("--pca", default=0, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
-def main(args: argparse.Namespace) -> list:
+def main(args: argparse.Namespace) -> int:
+    """
+
+    Args:
+        args (argparse.Namespace): A dictionary of parameters to modify the ML workflow
+
+    Returns:
+        int: 0 is retuned upon a succesful run
+    """
     # We are training a model.
     np.random.seed(args.seed)
     tf.random.set_seed(args.seed)
@@ -141,9 +150,12 @@ def main(args: argparse.Namespace) -> list:
 
 
     # get the class weights
-    weight_for_0 = (1 / neg) * (total / 2.0)
-    weight_for_1 = (1 / pos) * (total / 2.0)
-    class_weight = {0: weight_for_0, 1: weight_for_1}
+    if args.weighted:
+        weight_for_0 = (1 / neg) * (total / 2.0)
+        weight_for_1 = (1 / pos) * (total / 2.0)
+        class_weight = {0: weight_for_0, 1: weight_for_1}
+    else:
+        class_weight = {0: 1, 1: 1}
 
     # Instantiate the hyperband tuner and perform the tuning
     log_dir = "logs/hp/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
