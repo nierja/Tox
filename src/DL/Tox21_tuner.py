@@ -13,6 +13,7 @@ import keras_tuner as kt
 import argparse
 import numpy as np
 import pandas as pd
+import sys
 import datetime
 
 from sklearn.preprocessing import StandardScaler
@@ -24,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
 parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
-parser.add_argument("--cv", default=10, type=int, help="Cross-validate with given number of folds")
+parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="mordred", type=str, help="Fingerprint to use")
@@ -97,29 +98,32 @@ def main(args: argparse.Namespace) -> list:
     def model_builder(hp, metrics=METRICS, output_bias=OUTPUT_BIAS):
         # build the desired model in a sequential manner
 
-        hp_units1 = hp.Int('units1', min_value=256, max_value=512, step=256)
-        hp_units2 = hp.Int('units2', min_value=256, max_value=512, step=256)
+        model = keras.Sequential()
+        model.add(keras.layers.Flatten())
+        # Tune the number of layers.
+        for i in range(hp.Int("num_layers", 1, args.n_layers)):
+            model.add(
+                keras.layers.Dense(
+                    # Tune number of units separately.
+                    units=hp.Int(f"units_{i}", min_value=256, max_value=1024, step=256),
+                    activation=hp.Choice("activation", ["relu"]),
+                )
+            )
+        if hp.Boolean("dropout"):
+            model.add(keras.layers.Dropout(rate=0.25))
 
-        model = keras.Sequential([
-            keras.layers.Dense(
-                units=hp_units1, activation='relu',
-                input_shape=(train_features.shape[-1],)),
-            keras.layers.Dropout(0.5),
-            keras.layers.Dense(
-                units=hp_units2, activation='relu',
-                ),
-            keras.layers.Dropout(0.5),
-            keras.layers.Dense(1, activation='sigmoid',
-                            bias_initializer=output_bias),
-        ])
+        model.add(keras.layers.Dense(1, activation='sigmoid',
+                        bias_initializer=output_bias))
 
-        hp_learning_rate = hp.Choice('learning_rate', values=[1e-3, 1e-4])
+        learning_rate = hp.Float("lr", min_value=1e-4, max_value=1e-3, sampling="log")
 
-        model.compile(optimizer=keras.optimizers.Adam(learning_rate=hp_learning_rate),
+        model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
             loss=keras.losses.BinaryCrossentropy(),
-            metrics=metrics)
-
+            metrics=metrics,
+        )
         return model
+
 
     # get the class weights
     weight_for_0 = (1 / neg) * (total / 2.0)
@@ -159,6 +163,10 @@ def main(args: argparse.Namespace) -> list:
     # the model with the hyperparameters obtained from the search.
     model = tuner.hypermodel.build(best_hps)
     history = model.fit(train_features, train_labels, epochs=50, validation_split=0.2, class_weight=class_weight, )
+    # TODO: Add logging
+    # print(model.history)
+    # print(model.history.history['val_auc'][-1])
+    # sys.exit()
 
     # calculate the optimal number of epochs
     val_acc_per_epoch = history.history['val_accuracy']
@@ -226,6 +234,7 @@ def main(args: argparse.Namespace) -> list:
         hypermodel.fit(train_features, train_labels, epochs=best_epoch, validation_split=0.2, class_weight=class_weight, callbacks=[stop_early])
 
     plot_model(hypermodel1, show_shapes=True, to_file='hypermodel1_plot.png')
+    hypermodel1.save("single_model")
 
     # evaluate the hypermodels on the test data individually
     for hypermodel in hypermodels:
@@ -243,6 +252,7 @@ def main(args: argparse.Namespace) -> list:
     # compile and plot the ensamble model
     ensemble_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=METRICS)
     plot_model(ensemble_model, show_shapes=True, to_file='ensemble_model_plot.png')
+    ensemble_model.save("ensemble_model")
 
     # finally, evaluate the ensamble performance
     eval_result = ensemble_model.evaluate(test_features, test_labels)
