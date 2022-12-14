@@ -4,7 +4,7 @@ import signal
 import subprocess
 import time
 
-targets = ["NR-AR", "NR-AHR", "NR-AR-LBD", "NR-Aromatase", "NR-ER", "NR-ER-LBD", "NR-PPAR-gamma", "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53"]
+targets = ["NR-AR", "NR-AhR", "NR-AR-LBD", "NR-Aromatase", "NR-ER", "NR-ER-LBD", "NR-PPAR-gamma", "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53"]
 descriptors = [ "maccs" ]
 datasets = [ "training", "test", "eval" ]
 
