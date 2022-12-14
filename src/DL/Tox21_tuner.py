@@ -262,6 +262,9 @@ def main(args: argparse.Namespace) -> int:
 
     fold_no = 1
     for train, test in kfold.split(train_features, train_labels):
+        
+        # model = tuner.hypermodel.build(best_hps)
+
         history = model.fit(
             train_features[train], 
             train_labels[train],
