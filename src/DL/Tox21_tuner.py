@@ -48,6 +48,35 @@ parser.add_argument("--weighted", default=False, type=bool, help="Set class weig
 parser.add_argument("--pca", default=0, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
+def log_scores(dictionary, metrics_names, scores) -> None:
+    # logs desired metrics into a dictionary
+    for name, value in zip(metrics_names, scores):
+        print(name, ': ', value)
+        if name == "tp" : tp = value
+        if name == "fp" : fp = value
+        if name == "tn" : tn = value
+        if name == "fn" : fn = value
+
+    tpr = tp / ( tp + fn )
+    tnr = tn / ( tn + fp )
+    f1 = tp / ( tp + 0.5 * ( fp + fn ) )
+    ba = ( tpr + tnr ) / 2
+
+    auc_idx = metrics_names.index( "auc" )
+    acc_idx = metrics_names.index( "accuracy" )
+    prc_idx = metrics_names.index( "prc" ) 
+
+    dictionary["auc"].append( scores[ auc_idx ] )
+    dictionary["acc"].append( scores[ acc_idx ] )
+    dictionary["prc"].append( scores[ prc_idx ] )
+    dictionary["f1"].append( f1 )
+    dictionary["ba"].append( ba )
+    dictionary["tp"].append( tp )
+    dictionary["fp"].append( fp )
+    dictionary["tn"].append( tn )
+    dictionary["fn"].append( fn )
+
+
 def main(args: argparse.Namespace) -> int:
     """
 
@@ -282,28 +311,15 @@ def main(args: argparse.Namespace) -> int:
       
         # Generate generalization metrics
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
+
+        log_scores( CV_metrics, model.metrics_names, scores )
+
         print(spacer)
         print(f'{args.cv}-fold CV -- fold no. {fold_no} RESULTS :\n')
-        for name, value in zip(model.metrics_names, scores):
-            print(name, ': ', value)
-            if name == "tp" : tp = value
-            if name == "fp" : fp = value
-            if name == "tn" : tn = value
-            if name == "fn" : fn = value
-
-        tpr = tp / ( tp + fn )
-        tnr = tn / ( tn + fp )
-        f1 = tp / ( tp + 0.5 * ( fp + fn ) )
-        ba = ( tpr + tnr ) / 2
-        print('f1', ': ', f1 )
-        print('ba', ': ', ba )
+        for key in CV_metrics.keys():
+            print(key, ': ', (CV_metrics[key])[-1] )
         print(spacer)  
-
-        CV_metrics["auc"].append( scores[8] )
-        CV_metrics["acc"].append( scores[5] )
-        CV_metrics["f1"].append( f1 )
-        CV_metrics["ba"].append( ba )
-        print(CV_metrics)
+        print(model.metrics_names, scores, CV_metrics)
 
         # Increase fold number
         fold_no += 1
