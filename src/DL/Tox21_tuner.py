@@ -29,7 +29,7 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
 parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
-parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
+parser.add_argument("--target", default="SR-MMP", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
 parser.add_argument("--weighted", default=False, type=bool, help="Set class weights")
@@ -72,6 +72,7 @@ def main(args: argparse.Namespace) -> int:
         print(train_features.shape, val_features.shape, test_features.shape)
 
     # Optionaly, merge the train and validation datasets
+    print(train_labels)
     train_labels = np.concatenate((train_labels, val_labels), axis=0)
     train_features = np.concatenate((train_features, val_features), axis=0)
 
@@ -120,6 +121,8 @@ def main(args: argparse.Namespace) -> int:
         keras.metrics.AUC(name='prc', curve='PR'), 
     ]
 
+
+    """
     def model_builder(hp, metrics=METRICS, output_bias=OUTPUT_BIAS):
         # build the desired model in a sequential manner
 
@@ -130,7 +133,7 @@ def main(args: argparse.Namespace) -> int:
             model.add(
                 keras.layers.Dense(
                     # Tune number of units separately.
-                    units=hp.Int(f"units_{i}", min_value=256, max_value=256, step=256),
+                    units=hp.Int(f"units_{i}", min_value=256, max_value=1024, step=256),
                     activation=hp.Choice("activation", ["relu"]),
                 )
             )
@@ -144,6 +147,35 @@ def main(args: argparse.Namespace) -> int:
 
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+            loss=keras.losses.BinaryCrossentropy(),
+            metrics=metrics,
+        )
+        return model
+    """
+
+    def model_builder(hp, metrics=METRICS, output_bias=OUTPUT_BIAS):
+        # DUMMY FUNCTION, for logging only
+        # DUMMY FUNCTION, for logging only
+        # DUMMY FUNCTION, for logging only        
+        # build the desired model in a sequential manner
+
+        model = keras.Sequential()
+        model.add(keras.layers.Flatten())
+        # Tune the number of layers.
+        for i in range(hp.Int("num_layers", 1, 1)):
+            model.add(
+                keras.layers.Dense(
+                    # Tune number of units separately.
+                    units=hp.Int(f"units_{i}", min_value=512, max_value=512, step=512),
+                    activation=hp.Choice("activation", ["relu"]),
+                )
+            )
+        
+        model.add(keras.layers.Dense(1, activation='sigmoid',
+                        bias_initializer=output_bias))
+
+        model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=1e-3),
             loss=keras.losses.BinaryCrossentropy(),
             metrics=metrics,
         )
@@ -162,6 +194,19 @@ def main(args: argparse.Namespace) -> int:
     log_dir = "logs/hp/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=log_dir)
 
+    # DUMMY TUNER, for logging only
+    # DUMMY TUNER, for logging only
+    # DUMMY TUNER, for logging only
+
+    tuner = kt.Hyperband(model_builder,
+                        objective=kt.Objective("auc", direction="max"),
+                        max_epochs=2,
+                        factor=3,
+                        directory=log_dir,
+                        project_name='intro_to_kt',
+                        )
+
+    """
     tuner = kt.Hyperband(model_builder,
                         objective=kt.Objective("auc", direction="max"),
                         max_epochs=10,
@@ -169,6 +214,7 @@ def main(args: argparse.Namespace) -> int:
                         directory=log_dir,
                         project_name='intro_to_kt',
                         )
+    """
 
     stop_early = tf.keras.callbacks.EarlyStopping(
         monitor='auc', 
@@ -207,7 +253,12 @@ def main(args: argparse.Namespace) -> int:
         
     """
     kfold = KFold(n_splits=args.cv, shuffle=True)
-    auc_per_fold = []; loss_per_fold = []
+    CV_metrics = {
+        "auc" : [],
+        "acc" : [],
+        "f1" : [],
+        "ba" : [],
+    }
 
     fold_no = 1
     for train, test in kfold.split(train_features, train_labels):
@@ -221,6 +272,8 @@ def main(args: argparse.Namespace) -> int:
       
         # Generate generalization metrics
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
+        print(spacer)
+        print(f'{args.cv}-fold CV -- fold no. {fold_no} RESULTS :\n')
         for name, value in zip(model.metrics_names, scores):
             print(name, ': ', value)
             if name == "tp" : tp = value
@@ -230,24 +283,22 @@ def main(args: argparse.Namespace) -> int:
 
         tpr = tp / ( tp + fn )
         tnr = tn / ( tn + fp )
+        f1 = tp / ( tp + 0.5 * ( fp + fn ) )
+        ba = ( tpr + tnr ) / 2
+        print('f1', ': ', f1 )
+        print('ba', ': ', ba )
+        print(spacer)  
 
-        print( "\n\n\n", spacer, "\n\n\n" )
-
-        print('f1', ': ', tp / ( tp + 0.5 * ( fp + fn ) ) )
-        print('ba', ': ', ( tpr + tnr ) / 2 )
-
-        auc = scores[9]
-        print(f'Score for fold {fold_no}: "auc" = {auc}')
-        print(spacer)
-        print(scores)
-        auc_per_fold.append(scores[9])
-        loss_per_fold.append(scores[0])
+        CV_metrics["auc"].append( scores[8] )
+        CV_metrics["acc"].append( scores[5] )
+        CV_metrics["f1"].append( f1 )
+        CV_metrics["ba"].append( ba )
+        print(CV_metrics)
 
         # Increase fold number
         fold_no += 1
 
-    print(f'{args.cv}-fold CV: "auc_CV" = {np.array(auc_per_fold).mean()}+-{np.array(auc_per_fold).std()}')
-    print(f'{args.cv}-fold CV: "loss_CV" = {np.array(loss_per_fold).mean()}+-{np.array(loss_per_fold).std()}')
+    print(f'{args.cv}-fold CV: "auc_CV" = {np.array(CV_metrics["auc"]).mean()}+-{np.array(CV_metrics["auc"]).std()}')
 
     # recreate the best model several times and traind the individual
     # instances for the best number of epochs
@@ -305,8 +356,9 @@ def main(args: argparse.Namespace) -> int:
     # finally, evaluate the ensamble performance
     eval_result = ensemble_model.evaluate(test_features, test_labels)
     print(spacer)
-    print(ensemble_model.metrics_names)
-    print("METRICS:", eval_result)
+    print('ENSEMBLE MODEL RESULTS:\n')
+    for name, value in zip(ensemble_model.metrics_names, eval_result):
+            print(name, ': ', value)
     print(spacer)
 
 
