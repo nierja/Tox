@@ -24,6 +24,18 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, roc_auc_score, auc, accuracy_score, balanced_accuracy_score, f1_score, precision_recall_fscore_support, fbeta_score, recall_score
 
 spacer = '------------------------------------------------------------------------'
+metrics_dict = {
+    "auc" : [],
+    "prc" : [],
+    "acc" : [],
+    "f1"  : [],
+    "ba"  : [],
+    "tp"  : [],
+    "fp"  : [],
+    "tn"  : [],
+    "fn"  : [],
+}
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
@@ -253,17 +265,12 @@ def main(args: argparse.Namespace) -> int:
         
     """
     kfold = KFold(n_splits=args.cv, shuffle=True)
-    CV_metrics = {
-        "auc" : [],
-        "acc" : [],
-        "f1" : [],
-        "ba" : [],
-    }
+    CV_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
 
     fold_no = 1
     for train, test in kfold.split(train_features, train_labels):
         
-        # model = tuner.hypermodel.build(best_hps)
+        model = tuner.hypermodel.build(best_hps)
 
         history = model.fit(
             train_features[train], 
