@@ -49,8 +49,12 @@ parser.add_argument("--weighted", default=False, type=bool, help="Set class weig
 parser.add_argument("--pca", default=0, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
-def log_scores(dictionary, metrics_names, scores) -> None:
+def prefix_dict_keys(dictionary, prefix):
+    return dict((prefix+str(key), value) for (key, value) in dictionary.items())
+
+def log_scores(dictionary, metrics_names, scores, prefix='') -> None:
     # logs desired metrics into a dictionary
+
     for name, value in zip(metrics_names, scores):
         if name == "tp" : tp = value
         if name == "fp" : fp = value
@@ -66,15 +70,16 @@ def log_scores(dictionary, metrics_names, scores) -> None:
     acc_idx = metrics_names.index( "accuracy" )
     prc_idx = metrics_names.index( "prc" ) 
 
-    dictionary["auc"].append( scores[ auc_idx ] )
-    dictionary["acc"].append( scores[ acc_idx ] )
-    dictionary["prc"].append( scores[ prc_idx ] )
-    dictionary["f1"].append( f1 )
-    dictionary["ba"].append( ba )
-    dictionary["tp"].append( tp )
-    dictionary["fp"].append( fp )
-    dictionary["tn"].append( tn )
-    dictionary["fn"].append( fn )
+    # prefix dictionary keys
+    dictionary[f"{prefix}auc"].append( scores[ auc_idx ] )
+    dictionary[f"{prefix}acc"].append( scores[ acc_idx ] )
+    dictionary[f"{prefix}prc"].append( scores[ prc_idx ] )
+    dictionary[f"{prefix}f1"].append( f1 )
+    dictionary[f"{prefix}ba"].append( ba )
+    dictionary[f"{prefix}tp"].append( tp )
+    dictionary[f"{prefix}fp"].append( fp )
+    dictionary[f"{prefix}tn"].append( tn )
+    dictionary[f"{prefix}fn"].append( fn )
 
 
 def main(args: argparse.Namespace) -> int:
@@ -295,6 +300,7 @@ def main(args: argparse.Namespace) -> int:
     """
     kfold = KFold(n_splits=args.cv, shuffle=True)
     CV_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
+    CV_metrics = prefix_dict_keys(CV_metrics, prefix='CV_') 
 
     fold_no = 1
     for train, test in kfold.split(train_features, train_labels):
@@ -312,7 +318,7 @@ def main(args: argparse.Namespace) -> int:
         # Generate generalization metrics
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
 
-        log_scores( CV_metrics, model.metrics_names, scores )
+        log_scores( CV_metrics, model.metrics_names, scores, prefix='CV_' )
         print(spacer)
         print(f'{args.cv}-fold CV -- fold no. {fold_no} RESULTS :\n')
         for key in CV_metrics.keys():
@@ -323,7 +329,8 @@ def main(args: argparse.Namespace) -> int:
         # Increase fold number
         fold_no += 1
 
-    print(f'{args.cv}-fold CV: "auc_CV" = {np.array(CV_metrics["auc"]).mean()}+-{np.array(CV_metrics["auc"]).std()}')
+    print(f'{args.cv}-fold CV: "auc_CV" = {np.array(CV_metrics["CV_auc"]).mean()}+-{np.array(CV_metrics["CV_auc"]).std()}')
+    print(CV_metrics)
 
     # recreate the best model several times and traind the individual
     # instances for the best number of epochs
@@ -359,13 +366,15 @@ def main(args: argparse.Namespace) -> int:
         print("METRICS:", eval_result)
 
     EM_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
-    log_scores( EM_metrics, ensemble_model.metrics_names, eval_result )
+    EM_metrics = prefix_dict_keys(EM_metrics, prefix='EM_')
+    log_scores( EM_metrics, ensemble_model.metrics_names, eval_result, prefix='EM_' )
+    print(EM_metrics)
 
     print('\n')    
     print(spacer)
     print(f'ENSEMBLE OF {args.ensamble} MODELS -- RESULTS:\n')
     for key in EM_metrics.keys():
-        print(key, ': ', (EM_metrics[key])[-1] )
+        print(key[3:], ': ', (EM_metrics[key])[-1] )
     print(spacer)
 
     # log data into a csv file
