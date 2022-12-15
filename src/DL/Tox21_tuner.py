@@ -41,7 +41,7 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
 parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
-parser.add_argument("--ensamble", default=11, type=int, help="Number of models in an ensamble")
+parser.add_argument("--ensamble", default=3, type=int, help="Number of models in an ensamble")
 parser.add_argument("--target", default="SR-MMP", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
@@ -313,7 +313,6 @@ def main(args: argparse.Namespace) -> int:
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
 
         log_scores( CV_metrics, model.metrics_names, scores )
-
         print(spacer)
         print(f'{args.cv}-fold CV -- fold no. {fold_no} RESULTS :\n')
         for key in CV_metrics.keys():
@@ -329,7 +328,6 @@ def main(args: argparse.Namespace) -> int:
     # recreate the best model several times and traind the individual
     # instances for the best number of epochs
     hypermodels = [tuner.hypermodel.build(best_hps) for i in range(args.ensamble)]
-    print ( hypermodels )
 
     # Retrain the models with optimal number of epochs
     for hypermodel in hypermodels:
@@ -352,29 +350,23 @@ def main(args: argparse.Namespace) -> int:
 
     # finally, evaluate the ensamble performance
     eval_result = ensemble_model.evaluate(test_features, test_labels)
-    print(spacer)
-    print(f'ENSEMBLE OF {args.ensamble} MODELS -- RESULTS:\n')
-    for name, value in zip(ensemble_model.metrics_names, eval_result):
-            print(name, ': ', value)
-    print(spacer)
 
-        # evaluate the hypermodels on the test data individually
+    # evaluate the hypermodels on the test data individually and
+    # print the results
     for hypermodel in hypermodels:
         eval_result = hypermodel.evaluate(test_features, test_labels)
         print(spacer)
         print("METRICS:", eval_result)
 
-    FP = []
-    FN = []
-    test_predictions = ensemble_model.predict(test_features)
-    for idx, prediction in enumerate ( test_predictions ):
-        if ( ( prediction > 0.5 ) and ( test_labels [ idx ] == 0 ) ):
-            FP.append ( prediction[0] )
-        if ( ( prediction < 0.5 ) and ( test_labels [ idx ] == 1 ) ):
-            FN.append ( prediction[0] )
+    EM_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
+    log_scores( EM_metrics, ensemble_model.metrics_names, eval_result )
 
-    print(f'fn : {FN}')
-    print(f'fp : {FP}')
+    print('\n')    
+    print(spacer)
+    print(f'ENSEMBLE OF {args.ensamble} MODELS -- RESULTS:\n')
+    for key in EM_metrics.keys():
+        print(key, ': ', (EM_metrics[key])[-1] )
+    print(spacer)
 
     # log data into a csv file
     file_path = f'../../results/logs/DL_{args.target}.csv'
