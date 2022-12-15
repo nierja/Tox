@@ -41,6 +41,7 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
 parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
+parser.add_argument("--ensamble", default=11, type=int, help="Number of models in an ensamble")
 parser.add_argument("--target", default="SR-MMP", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
@@ -327,44 +328,15 @@ def main(args: argparse.Namespace) -> int:
 
     # recreate the best model several times and traind the individual
     # instances for the best number of epochs
-    hypermodel1 = tuner.hypermodel.build(best_hps)
-    hypermodel2 = tuner.hypermodel.build(best_hps)
-    hypermodel3 = tuner.hypermodel.build(best_hps)
-    # hypermodel4 = tuner.hypermodel.build(best_hps)
-    # hypermodel5 = tuner.hypermodel.build(best_hps)
-    # hypermodel6 = tuner.hypermodel.build(best_hps)
-    # hypermodel7 = tuner.hypermodel.build(best_hps)
-    # hypermodel8 = tuner.hypermodel.build(best_hps)
-    # hypermodel9 = tuner.hypermodel.build(best_hps)
-    # hypermodel10 = tuner.hypermodel.build(best_hps)
-    # hypermodel11 = tuner.hypermodel.build(best_hps)
-
-    hypermodels = [
-        hypermodel1,
-        hypermodel2,
-        hypermodel3, ]
-    #     hypermodel4,
-    #     hypermodel5,
-    #     hypermodel6,
-    #     hypermodel7,
-    #     hypermodel8,
-    #     hypermodel9,
-    #     hypermodel10,
-    #     hypermodel11,
-    # ]
+    hypermodels = [tuner.hypermodel.build(best_hps) for i in range(args.ensamble)]
+    print ( hypermodels )
 
     # Retrain the models with optimal number of epochs
     for hypermodel in hypermodels:
         hypermodel.fit(train_features, train_labels, epochs=best_epoch, validation_split=0.2, class_weight=class_weight, callbacks=[stop_early])
 
-    plot_model(hypermodel1, show_shapes=True, to_file='hypermodel1_plot.png')
-    hypermodel1.save("single_model")
-
-    # evaluate the hypermodels on the test data individually
-    for hypermodel in hypermodels:
-        eval_result = hypermodel.evaluate(test_features, test_labels)
-        print(spacer)
-        print("METRICS:", eval_result)
+    plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
+    hypermodels[0].save("single_model")
 
     # create an ensamble model from the hypermodles
     models = hypermodels
@@ -381,10 +353,16 @@ def main(args: argparse.Namespace) -> int:
     # finally, evaluate the ensamble performance
     eval_result = ensemble_model.evaluate(test_features, test_labels)
     print(spacer)
-    print('ENSEMBLE MODEL RESULTS:\n')
+    print(f'ENSEMBLE OF {args.ensamble} MODELS -- RESULTS:\n')
     for name, value in zip(ensemble_model.metrics_names, eval_result):
             print(name, ': ', value)
     print(spacer)
+
+        # evaluate the hypermodels on the test data individually
+    for hypermodel in hypermodels:
+        eval_result = hypermodel.evaluate(test_features, test_labels)
+        print(spacer)
+        print("METRICS:", eval_result)
 
     FP = []
     FN = []
