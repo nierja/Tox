@@ -51,7 +51,6 @@ parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdig
 def log_scores(dictionary, metrics_names, scores) -> None:
     # logs desired metrics into a dictionary
     for name, value in zip(metrics_names, scores):
-        print(name, ': ', value)
         if name == "tp" : tp = value
         if name == "fp" : fp = value
         if name == "tn" : tn = value
@@ -387,6 +386,17 @@ def main(args: argparse.Namespace) -> int:
             print(name, ': ', value)
     print(spacer)
 
+    FP = []
+    FN = []
+    test_predictions = ensemble_model.predict(test_features)
+    for idx, prediction in enumerate ( test_predictions ):
+        if ( ( prediction > 0.5 ) and ( test_labels [ idx ] == 0 ) ):
+            FP.append ( prediction[0] )
+        if ( ( prediction < 0.5 ) and ( test_labels [ idx ] == 1 ) ):
+            FN.append ( prediction[0] )
+
+    print(f'fn : {FN}')
+    print(f'fp : {FP}')
 
     # log data into a csv file
     file_path = f'../../results/logs/DL_{args.target}.csv'
