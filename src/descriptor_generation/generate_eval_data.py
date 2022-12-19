@@ -179,6 +179,9 @@ def main(args):
             sanitize nan and inf values, as it is difficult
             to get rid of them later
             """
+
+            SMILES = row["smiles"]
+            file.write(f"{SMILES}, ")
             # mixed fingerprints
             if args.fp in ['ecfp4_maccs', 'maccs_rdk7', 'ecfp4_rdk7']:
                 fp1 = np.nan_to_num(fp1); fp2 = np.nan_to_num(fp2)
