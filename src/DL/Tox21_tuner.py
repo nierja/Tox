@@ -307,7 +307,7 @@ def main(args: argparse.Namespace) -> int:
         hypermodel.fit(train_features, train_labels, epochs=best_epoch, validation_split=0.2, class_weight=class_weight, callbacks=[stop_early])
 
     plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
-    hypermodels[0].save("single_model")
+    hypermodels[0].save(f"best_single_model_{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
     # create an ensamble model from the hypermodles
     models = hypermodels
