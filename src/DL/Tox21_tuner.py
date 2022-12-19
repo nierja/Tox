@@ -178,8 +178,6 @@ def main(args: argparse.Namespace) -> int:
         keras.metrics.AUC(name='prc', curve='PR'), 
     ]
 
-
-    """
     def model_builder(hp, metrics=METRICS, output_bias=OUTPUT_BIAS):
         # build the desired model in a sequential manner
 
@@ -190,7 +188,7 @@ def main(args: argparse.Namespace) -> int:
             model.add(
                 keras.layers.Dense(
                     # Tune number of units separately.
-                    units=hp.Int(f"units_{i}", min_value=256, max_value=1024, step=256),
+                    units=hp.Int(f"units_{i}", min_value=256, max_value=4096, step=256),
                     activation=hp.Choice("activation", ["relu"]),
                 )
             )
@@ -204,35 +202,6 @@ def main(args: argparse.Namespace) -> int:
 
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-            loss=keras.losses.BinaryCrossentropy(),
-            metrics=metrics,
-        )
-        return model
-    """
-
-    def model_builder(hp, metrics=METRICS, output_bias=OUTPUT_BIAS):
-        # DUMMY FUNCTION, for logging only
-        # DUMMY FUNCTION, for logging only
-        # DUMMY FUNCTION, for logging only        
-        # build the desired model in a sequential manner
-
-        model = keras.Sequential()
-        model.add(keras.layers.Flatten())
-        # Tune the number of layers.
-        for i in range(hp.Int("num_layers", 1, 1)):
-            model.add(
-                keras.layers.Dense(
-                    # Tune number of units separately.
-                    units=hp.Int(f"units_{i}", min_value=512, max_value=512, step=512),
-                    activation=hp.Choice("activation", ["relu"]),
-                )
-            )
-        
-        model.add(keras.layers.Dense(1, activation='sigmoid',
-                        bias_initializer=output_bias))
-
-        model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=1e-3),
             loss=keras.losses.BinaryCrossentropy(),
             metrics=metrics,
         )
@@ -251,19 +220,6 @@ def main(args: argparse.Namespace) -> int:
     log_dir = "logs/hp/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=log_dir)
 
-    # DUMMY TUNER, for logging only
-    # DUMMY TUNER, for logging only
-    # DUMMY TUNER, for logging only
-
-    tuner = kt.Hyperband(model_builder,
-                        objective=kt.Objective("auc", direction="max"),
-                        max_epochs=2,
-                        factor=3,
-                        directory=log_dir,
-                        project_name='intro_to_kt',
-                        )
-
-    """
     tuner = kt.Hyperband(model_builder,
                         objective=kt.Objective("auc", direction="max"),
                         max_epochs=10,
@@ -271,7 +227,6 @@ def main(args: argparse.Namespace) -> int:
                         directory=log_dir,
                         project_name='intro_to_kt',
                         )
-    """
 
     stop_early = tf.keras.callbacks.EarlyStopping(
         monitor='auc', 
