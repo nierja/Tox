@@ -17,6 +17,7 @@ import os
 import sys
 import datetime
 
+from copy import deepcopy
 from scipy import sparse
 from sklearn.decomposition import IncrementalPCA
 from sklearn.preprocessing import StandardScaler
@@ -45,7 +46,7 @@ parser.add_argument("--ensamble", default=3, type=int, help="Number of models in
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
-parser.add_argument("--weighted", default=False, type=bool, help="Set class weights")
+parser.add_argument("--weighted", default=0, type=bool, help="Set class weights")
 parser.add_argument("--pca", default=0, type=int, help="dimensionality of space the dataset is reduced to using pca")
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
@@ -309,7 +310,7 @@ def main(args: argparse.Namespace) -> int:
         
     """
     kfold = KFold(n_splits=args.cv, shuffle=True)
-    CV_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
+    CV_metrics = deepcopy(metrics_dict)    # creates a deep copy of metrics_dict
     CV_metrics = prefix_dict_keys(CV_metrics, prefix='CV_') 
 
     fold_no = 1
@@ -371,11 +372,16 @@ def main(args: argparse.Namespace) -> int:
     # evaluate the hypermodels on the test data individually and
     # print the results
     for hypermodel in hypermodels:
-        eval_result = hypermodel.evaluate(test_features, test_labels)
+        single_result = hypermodel.evaluate(test_features, test_labels)
         print(spacer)
-        print("METRICS:", eval_result)
+        print("METRICS:", single_result)
 
-    EM_metrics = metrics_dict.copy()    # creates a deep copy of metrics_dict
+    EM_metrics = deepcopy(metrics_dict)    # creates a deep copy of metrics_dict
+
+    print("####")
+    print(EM_metrics)
+    print("####")
+
     EM_metrics = prefix_dict_keys(EM_metrics, prefix='EM_')
     log_scores( EM_metrics, ensemble_model.metrics_names, eval_result, prefix='EM_' )
     print(EM_metrics)
@@ -387,18 +393,31 @@ def main(args: argparse.Namespace) -> int:
         print(key[3:], ': ', (EM_metrics[key])[-1] )
     print(spacer)
 
+    # define header
+    description = "dataset,model,model_info,fp,pca,weighted,cv,ensable_size,"
+    EN_results = ','.join(EM_metrics)+','
+    CV_results_avg = ','.join(f'{key}_avg' for key in CV_metrics.keys())+','
+    CV_results_std = ','.join(f'{key}_err' for key in CV_metrics.keys())
+    header = description + EN_results + CV_results_avg + CV_results_std
+
+    # define results
+    description = f"Tox21,{args.NN_type},{args.n_layers},{args.fp},{args.pca},{args.weighted},{args.cv},{args.ensamble},"
+    EN_results = ','.join(f'{value[0]}' for value in EM_metrics.values())+','
+    CV_results_avg = ','.join(f'{np.array(value).mean()}' for value in CV_metrics.values())+','
+    CV_results_std = ','.join(f'{np.array(value).std()}' for value in CV_metrics.values())
+    results = description + EN_results + CV_results_avg + CV_results_std
+
     # log data into a csv file
     file_path = f'../../results/logs/DL_{args.target}.csv'
     if not os.path.isfile(file_path): 
         # create a csv header if the file doesn't exist
-        ...
+        with open( file_path, 'w') as f:
+            print( header, file=f )
 
     with open(file_path, 'a') as f:
         # log parameters
-        ...
-    
-    # print to STDOUT
-    ...
+         with open(file_path, 'a') as f:
+            print( results, file=f )
 
     return 0
 
