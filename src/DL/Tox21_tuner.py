@@ -42,7 +42,7 @@ parser.add_argument("--n_classes", default=2, type=int, help="Number of target c
 parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
 parser.add_argument("--ensamble", default=3, type=int, help="Number of models in an ensamble")
-parser.add_argument("--target", default="SR-MMP", type=str, help="Target toxocity type")
+parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
 parser.add_argument("--NN_type", default="DNN", type=str, help="Type of a NN architecture")
 parser.add_argument("--fp", default="maccs", type=str, help="Fingerprint to use")
 parser.add_argument("--weighted", default=False, type=bool, help="Set class weights")
@@ -99,10 +99,20 @@ def main(args: argparse.Namespace) -> int:
     df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_test.data")
     df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_eval.data")
 
+    # clean duplicates
+    df_train = df_train.drop_duplicates()
+    df_test = df_test.drop_duplicates()
+    df_eval = df_eval.drop_duplicates()
+
+    # remove contradictions
+    df_train = df_train.drop_duplicates( subset=df_train.columns.difference([-1]), keep=False )
+    df_test = df_test.drop_duplicates( subset=df_test.columns.difference([-1]), keep=False )
+    df_eval = df_eval.drop_duplicates( subset=df_eval.columns.difference([-1]), keep=False )
+
     #  convert dataframes into numpy arrays
-    train_features, train_labels = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
-    val_features, val_labels = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
-    test_features, test_labels = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+    train_features, train_labels = df_train.iloc[:, 1:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
+    val_features, val_labels = df_test.iloc[:, 1:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
+    test_features, test_labels = df_eval.iloc[:, 1:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
 
     # perfoms the PCA transformation to R^{args.pca} space
     if args.pca:
