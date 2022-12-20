@@ -40,7 +40,7 @@ metrics_dict = {
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--n_classes", default=2, type=int, help="Number of target classes")
-parser.add_argument("--n_layers", default=3, type=int, help="Number of hidden layers")
+parser.add_argument("--n_layers", default=1, type=int, help="Number of hidden layers")
 parser.add_argument("--cv", default=3, type=int, help="Cross-validate with given number of folds")
 parser.add_argument("--ensamble", default=3, type=int, help="Number of models in an ensamble")
 parser.add_argument("--target", default="NR-AR", type=str, help="Target toxocity type")
@@ -188,7 +188,7 @@ def main(args: argparse.Namespace) -> int:
             model.add(
                 keras.layers.Dense(
                     # Tune number of units separately.
-                    units=hp.Int(f"units_{i}", min_value=256, max_value=4096, step=256),
+                    units=hp.Int(f"units_{i}", min_value=256, max_value=256, step=256),
                     activation=hp.Choice("activation", ["relu"]),
                 )
             )
@@ -307,7 +307,7 @@ def main(args: argparse.Namespace) -> int:
         hypermodel.fit(train_features, train_labels, epochs=best_epoch, validation_split=0.2, class_weight=class_weight, callbacks=[stop_early])
 
     plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
-    hypermodels[0].save(f"best_single_model_{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    hypermodels[0].save(f"../../results/models/best_single_model_{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
     # create an ensamble model from the hypermodles
     models = hypermodels
