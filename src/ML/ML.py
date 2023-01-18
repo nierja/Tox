@@ -66,9 +66,9 @@ def main(args: argparse.Namespace) -> list:
         df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_eval.data")
 
         #  convert it into numpy arrays
-        data_train, target_train = df_train.iloc[:, 0:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
-        data_test, target_test = df_test.iloc[:, 0:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
-        final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 0:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
+        data_train, target_train = df_train.iloc[:, 1:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
+        data_test, target_test = df_test.iloc[:, 1:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
+        final_evaluation_data, final_evaluation_target = df_eval.iloc[:, 1:-2].to_numpy(), df_eval.iloc[:, -1].to_numpy()
         
         # merge df_train and df_test for grid search
         data = np.concatenate((data_train, data_test), axis=0)
@@ -79,9 +79,8 @@ def main(args: argparse.Namespace) -> list:
             transformer = IncrementalPCA(n_components=args.pca_comps)
             data = sparse.csr_matrix(data)
             data = transformer.fit_transform(data)
-            if args.pca_comps == 2:
-                positive_PCA_features.append(data[target[:] == 1])
-                negative_PCA_features.append(data[target[:] == 0])
+            final_evaluation_data = sparse.csr_matrix(final_evaluation_data)
+            final_evaluation_data = transformer.fit_transform(final_evaluation_data)
 
         # train a model on the given dataset and store it in 'model'.
         if args.model in ["most_frequent", "stratified"]:
@@ -91,11 +90,11 @@ def main(args: argparse.Namespace) -> list:
         else:
             if args.model == "lr":
                 model = [
-                    ("lr_cv", sklearn.linear_model.LogisticRegressionCV(max_iter=100)),
+                    ("lr_cv", sklearn.linear_model.LogisticRegressionCV(max_iter=300)),
                 ]
             elif args.model == "svm":
                 model = [
-                    ("svm", sklearn.svm.SVC(max_iter=100, probability=True, verbose=1, kernel="linear")),
+                    ("svm", sklearn.svm.SVC(max_iter=300, probability=True, verbose=1, kernel="linear")),
                 ]
             elif args.model == "adalr":
                 model = [
@@ -224,6 +223,14 @@ def main(args: argparse.Namespace) -> list:
             f"{f1};{scores['test_f1_score'].mean()};{scores['test_f1_score'].std()};"\
             f"{best_params}"
         )
+
+        print("===================================================")
+        print(f"baseline_ACC_train = {(1-np.sum(target)/target.shape)[0]}")
+        print(f"baseline_ACC_test = {(1-np.sum(final_evaluation_target)/final_evaluation_target.shape)[0]}")
+        print(f"ACC = {accuracy},\nBAL_ACC = {balanced_accuracy},\nF1 = {f1},\nROC_AUC = {roc_auc}")
+        print(f"TRAIN: {np.sum(target)}/{target.shape[0]}\n"\
+              f"EVAL_TRUE: {np.sum(final_evaluation_target)}/{final_evaluation_target.shape[0]}\n"\
+              f"EVAL:  {np.sum(final_evaluation_predictions)}/{final_evaluation_predictions.shape[0]}")
     return 0
 
 
