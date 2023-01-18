@@ -65,6 +65,21 @@ def main(args: argparse.Namespace) -> list:
         df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_test.data")
         df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{fp_name}_eval.data")
 
+        print("Dataset BEFORE/AFTER cleaning:")
+        print(f"{(args.target).ljust(15)} & \t {df_train.shape[0]} & \t {df_train.sum(numeric_only=True)[-1]}/{df_train.shape[0]-df_train.sum(numeric_only=True)[-1]}  & \t {df_test.shape[0]} & \t {df_test.sum(numeric_only=True)[-1]}/{df_test.shape[0]-df_test.sum(numeric_only=True)[-1]} & \t {df_eval.shape[0]} & \t {df_eval.sum(numeric_only=True)[-1]}/{df_eval.shape[0]-df_eval.sum(numeric_only=True)[-1]} \\\\")
+
+        # clean duplicates
+        df_train = df_train.drop_duplicates()
+        df_test = df_test.drop_duplicates()
+        df_eval = df_eval.drop_duplicates()
+
+        # remove contradictions
+        df_train = df_train.drop_duplicates( subset=df_train.columns.difference([-1]), keep=False )
+        df_test = df_test.drop_duplicates( subset=df_test.columns.difference([-1]), keep=False )
+        df_eval = df_eval.drop_duplicates( subset=df_eval.columns.difference([-1]), keep=False )
+
+        print(f"{(args.target).ljust(15)} & \t {df_train.shape[0]} & \t {df_train.sum(numeric_only=True)[-1]}/{df_train.shape[0]-df_train.sum(numeric_only=True)[-1]}  & \t {df_test.shape[0]} & \t {df_test.sum(numeric_only=True)[-1]}/{df_test.shape[0]-df_test.sum(numeric_only=True)[-1]} & \t {df_eval.shape[0]} & \t {df_eval.sum(numeric_only=True)[-1]}/{df_eval.shape[0]-df_eval.sum(numeric_only=True)[-1]} \\\\")
+
         #  convert it into numpy arrays
         data_train, target_train = df_train.iloc[:, 1:-2].to_numpy(), df_train.iloc[:, -1].to_numpy()
         data_test, target_test = df_test.iloc[:, 1:-2].to_numpy(), df_test.iloc[:, -1].to_numpy()
