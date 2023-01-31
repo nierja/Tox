@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Original tutorial
-    https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/keras/keras_tuner.ipynb
-
-"""
 
 import tensorflow as tf
 from tensorflow import keras
@@ -51,6 +46,7 @@ parser.add_argument("--pca", default=0, type=int, help="dimensionality of space 
 parser.add_argument("--test_size", default=0.25, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
 
 def prefix_dict_keys(dictionary, prefix):
+    # prefix keys of a dictionary with a given prefex
     return dict((prefix+str(key), value) for (key, value) in dictionary.items())
 
 def log_scores(dictionary, metrics_names, scores, prefix='') -> None:
@@ -84,23 +80,17 @@ def log_scores(dictionary, metrics_names, scores, prefix='') -> None:
 
 
 def main(args: argparse.Namespace) -> int:
-    """
 
-    Args:
-        args (argparse.Namespace): A dictionary of parameters to modify the ML workflow
-
-    Returns:
-        int: 0 is retuned upon a succesful run
-    """
     # We are training a model.
     np.random.seed(args.seed)
     tf.random.set_seed(args.seed)
 
+    # define paths
     df_train = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}.data")
     df_test = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_test.data")
     df_eval = pd.read_csv(f"../../data/Tox21_descriptors/{args.target}/{args.target}_{args.fp}_eval.data")
 
-    # clean duplicates
+    # clean duplicates of molecules
     df_train = df_train.drop_duplicates()
     df_test = df_test.drop_duplicates()
     df_eval = df_eval.drop_duplicates()
@@ -141,7 +131,6 @@ def main(args: argparse.Namespace) -> int:
 
     # Normalize the dataset by scaling and clipping
     scaler = StandardScaler()
-
     train_features = scaler.fit_transform(train_features)
     val_features = scaler.transform(val_features)
     test_features = scaler.transform(test_features)
@@ -243,27 +232,19 @@ def main(args: argparse.Namespace) -> int:
 
     print(best_hps)
     print(tuner.search_space_summary())
-    print(tuner.results_summary()
-    )
+    print(tuner.results_summary())
 
     # Train the model, find the optimal number of epochs to train 
     # the model with the hyperparameters obtained from the search.
     model = tuner.hypermodel.build(best_hps)
     history = model.fit(train_features, train_labels, epochs=50, validation_split=0.2, class_weight=class_weight, )
-    # TODO: Add logging
-    # print(model.history)
-    # print(model.history.history['val_auc'][-1])
-    # sys.exit()
 
     # calculate the optimal number of epochs
     val_acc_per_epoch = history.history['val_accuracy']
     best_epoch = val_acc_per_epoch.index(max(val_acc_per_epoch)) + 1
     print('Best epoch: %d' % (best_epoch,))
 
-    """
-        Perform k-fold crossvalidation on the best model
-        
-    """
+    # Perform k-fold crossvalidation on the best model
     kfold = KFold(n_splits=args.cv, shuffle=True)
     CV_metrics = deepcopy(metrics_dict)    # creates a deep copy of metrics_dict
     CV_metrics = prefix_dict_keys(CV_metrics, prefix='CV_') 
@@ -281,7 +262,7 @@ def main(args: argparse.Namespace) -> int:
             callbacks=[stop_early]
         )
       
-        # Generate generalization metrics
+        # Generate metrics
         scores = model.evaluate(train_features[test], train_labels[test], verbose=0)
 
         log_scores( CV_metrics, model.metrics_names, scores, prefix='CV_' )
@@ -291,14 +272,12 @@ def main(args: argparse.Namespace) -> int:
             print(key, ': ', (CV_metrics[key])[-1] )
         print(spacer)  
         print(model.metrics_names, scores, CV_metrics)
-
-        # Increase fold number
         fold_no += 1
 
     print(f'{args.cv}-fold CV: "auc_CV" = {np.array(CV_metrics["CV_auc"]).mean()}+-{np.array(CV_metrics["CV_auc"]).std()}')
     print(CV_metrics)
 
-    # recreate the best model several times and traind the individual
+    # recreate the best model several times for ensamble averaging and train the individual
     # instances for the best number of epochs
     hypermodels = [tuner.hypermodel.build(best_hps) for i in range(args.ensamble)]
 
@@ -309,7 +288,7 @@ def main(args: argparse.Namespace) -> int:
     plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
     hypermodels[0].save(f"../../results/models/best_single_model_{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
-    # create an ensamble model from the hypermodles
+    # create an ensamble model from the hypermodeles
     models = hypermodels
     model_input = tf.keras.Input(shape=(train_features.shape[-1],))
     model_outputs = [model(model_input) for model in models]
@@ -332,15 +311,11 @@ def main(args: argparse.Namespace) -> int:
         print("METRICS:", single_result)
 
     EM_metrics = deepcopy(metrics_dict)    # creates a deep copy of metrics_dict
-
-    print("####")
-    print(EM_metrics)
-    print("####")
-
     EM_metrics = prefix_dict_keys(EM_metrics, prefix='EM_')
     log_scores( EM_metrics, ensemble_model.metrics_names, eval_result, prefix='EM_' )
     print(EM_metrics)
 
+    # print results to console
     print('\n')    
     print(spacer)
     print(f'ENSEMBLE OF {args.ensamble} MODELS -- RESULTS:\n')
