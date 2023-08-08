@@ -1,4 +1,4 @@
-Repository for Tox21 human toxicity classification on the MetaCentrum supercomputer.
+Repository for Tox21 human toxicity classification on the MetaCentrum computer cluster.
 
 
 
