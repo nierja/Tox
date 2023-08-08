@@ -1,7 +1,8 @@
-TensorFlow machine-learning pipeline for prediction of the toxicity of chemicals.
+TensorFlow machine-learning pipeline for prediction of the toxicity of chemicals. Code used in my Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235).
 
-Code used in my Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235)
+![Pipeline](./data/img/pipeline.jpg)
 
+## Usage
 
 Descriptor generation is handled by scripts `src/descriptor_generation/*.py`
 
