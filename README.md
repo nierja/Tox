@@ -1,4 +1,4 @@
-Repository for Tox21 human toxicity classification on the MetaCentrum computer cluster.
+TensorFlow machine-learning pipeline for prediction of the toxicity of chemicals.
 
 
 
