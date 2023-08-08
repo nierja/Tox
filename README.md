@@ -1,6 +1,6 @@
 TensorFlow machine-learning pipeline for prediction of the toxicity of chemicals. Code used in my Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235).
 
-<img src="./data/img/pipeline.jpg" width="400" />
+<center><img src="./data/img/pipeline.jpg" width="400" /></center>
 
 
 ## Usage
