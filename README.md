@@ -1,6 +1,6 @@
 # Chemical Toxicity Prediction
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/your-username/toxicity-prediction/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nierja/tox/blob/master/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/release)
 [![TensorFlow](https://img.shields.io/badge/tensorflow-2.0%2B-orange.svg)](https://www.tensorflow.org)
 [![Keras](https://img.shields.io/badge/keras-2.3%2B-red.svg)](https://keras.io)
@@ -23,8 +23,6 @@ This project explores the application of traditional machine-learning and deep-l
 - [Installation](#installation)
 - [Usage](#usage)
 - [Results](#results)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
 
 ## Installation
 
@@ -59,5 +57,8 @@ This project explores the application of traditional machine-learning and deep-l
 
 ## Results
 
-<img src="./data/img/pipeline.jpg" width="600" />
+This repository contains code for building a pipeline for toxicity prediction. Various 2D and 3D fingerprints are generated using RDKit and Mordred, and their suitability as molecular representations can be compared on a large variety of machine-learning and deep-learning models. 
+
+Both our deep learning and traditional machine learning models are employed on Tox21 and Ames Mutagenicity datasets. Their performance is evaluated against recently published models for toxicity prediction using the AUC-ROC metric and, regarding certain
+toxicity targets, shows improvement over these models. For further information. please see Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235).
 
