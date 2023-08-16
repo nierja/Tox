@@ -22,6 +22,3 @@ for descriptor in descriptors:
                 shell=True, 
                 preexec_fn=os.setsid
             ) 
-            time.sleep(10)
-            os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
-
