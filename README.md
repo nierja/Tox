@@ -43,7 +43,7 @@ This project explores the application of traditional machine-learning and deep-l
    python3 src/descriptor_generation/generate.py
    ```
 
-For generating all descriptors, uncomment all descriptor names in `generate.py`.
+    For generating all descriptors, uncomment all descriptor names in `generate.py`.
 
 2. Tune the hyperpadameters and train the machine learning and deep learning models:
 
