@@ -56,7 +56,7 @@ This project explores the application of traditional machine-learning and deep-l
 3. You can set model parameters as CLI parameters:
 
    ```python
-   python3 src/DL/Tox21_tuner.py --target=NR-AR --NN_type=DNN --n_layers=4 --fp=ecfp4
+   python3 src/DL/Tox21_tuner.py --target=NR-AR --NN_type=DNN --n_layers=4 --fp=maccs
    ```
 
 ## Resultss
