@@ -32,6 +32,7 @@ This project explores the application of traditional machine-learning and deep-l
    git clone https://github.com/nierja/tox.git
    cd tox
    ./lib/initialize_venv.sh
+   source ./lib/TOX_GPU_VENV/bin/activate
    ```
 
 ## Usage
