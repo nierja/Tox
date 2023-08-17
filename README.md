@@ -33,6 +33,7 @@ This project explores the application of traditional machine-learning and deep-l
    cd tox
    ./lib/initialize_venv.sh
    source ./lib/TOX_GPU_VENV/bin/activate
+   export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
    ```
 
 ## Usage
@@ -43,7 +44,7 @@ This project explores the application of traditional machine-learning and deep-l
    python3 src/descriptor_generation/generate.py
    ```
 
-    For generating all descriptors, uncomment all descriptor names in `generate.py`.
+    For generating all descriptors across all targets, uncomment their names in `generate.py`.
 
 2. Tune the hyperpadameters and train the machine learning and deep learning models:
 
@@ -58,7 +59,7 @@ This project explores the application of traditional machine-learning and deep-l
    python3 src/DL/Tox21_tuner.py --target=NR-AR --NN_type=DNN --n_layers=4 --fp=ecfp4
    ```
 
-## Results
+## Resultss
 
 This repository contains code for building a pipeline for toxicity prediction. Various 2D and 3D fingerprints are generated using RDKit and Mordred, and their suitability as molecular representations can be compared on a large variety of machine-learning and deep-learning models. 
 
