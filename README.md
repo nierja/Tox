@@ -37,11 +37,13 @@ This project explores the application of traditional machine-learning and deep-l
 
 ## Usage
 
-1. Generate descriptors for the training, validation and test datasets by running:
+1. Generate desired descriptors for the training, validation and test datasets by running:
 
    ```python
    python3 src/descriptor_generation/generate.py
    ```
+
+For generating all descriptors, uncomment all descriptor names in `generate.py`.
 
 2. Tune the hyperpadameters and train the machine learning and deep learning models:
 
@@ -53,7 +55,7 @@ This project explores the application of traditional machine-learning and deep-l
 3. You can set model parameters as CLI parameters:
 
    ```python
-   python3 src/DL/Tox21_tuner.py --target=SR-ER --NN_type=DNN --n_layers=4 --fp=ecfp4
+   python3 src/DL/Tox21_tuner.py --target=NR-AR --NN_type=DNN --n_layers=4 --fp=ecfp4
    ```
 
 ## Results
