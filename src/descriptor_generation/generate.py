@@ -4,7 +4,7 @@ import subprocess
 
 # uncomment thete to generate all descriptors for all targets
 targets = ["NR-AR", ] # "NR-AhR", "NR-AR-LBD", "NR-Aromatase", "NR-ER", "NR-ER-LBD", "NR-PPAR-gamma", "SR-ARE", "SR-ATAD5", "SR-HSE", "SR-MMP", "SR-p53"]
-descriptors = [ 'ecfp4', ] # 'maccs', 'ecfp4_maccs', 'maccs_rdk7', 'ecfp4_rdk7', 'ecfp0', 'ecfp2', 'ecfp6', 'fcfp2', 'fcfp4', 'fcfp6', 'hashap', 'hashtt', 'avalon', 'rdk5', 'rdk6', 'rdk7', 'eigenvals', 'rdkit_descr', 'CMat_400', 'CMat_600', 'mordred', ]
+descriptors = [ 'maccs', ] # 'ecfp4', 'ecfp4_maccs', 'maccs_rdk7', 'ecfp4_rdk7', 'ecfp0', 'ecfp2', 'ecfp6', 'fcfp2', 'fcfp4', 'fcfp6', 'hashap', 'hashtt', 'avalon', 'rdk5', 'rdk6', 'rdk7', 'eigenvals', 'rdkit_descr', 'CMat_400', 'CMat_600', 'mordred', ]
 datasets = [ "training", "test", "eval" ]
 
 spacer = '------------------------------------------------------------------------'
