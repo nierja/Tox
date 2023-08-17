@@ -80,6 +80,13 @@ def log_scores(dictionary, metrics_names, scores, prefix='') -> None:
 
 
 def main(args: argparse.Namespace) -> int:
+    # prepare the directory structure
+    os.system('export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python')
+    try:
+        os.makedirs('./results/logs')
+    except OSError:
+        pass
+    os.chdir('./src/DL')
 
     # We are training a model.
     np.random.seed(args.seed)
@@ -285,7 +292,7 @@ def main(args: argparse.Namespace) -> int:
     for hypermodel in hypermodels:
         hypermodel.fit(train_features, train_labels, epochs=best_epoch, validation_split=0.2, class_weight=class_weight, callbacks=[stop_early])
 
-    plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
+    # plot_model(hypermodels[0], show_shapes=True, to_file='hypermodel1_plot.png')
     hypermodels[0].save(f"../../results/models/best_single_model_{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
     # create an ensamble model from the hypermodeles
@@ -297,7 +304,7 @@ def main(args: argparse.Namespace) -> int:
 
     # compile and plot the ensamble model
     ensemble_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=METRICS)
-    plot_model(ensemble_model, show_shapes=True, to_file='ensemble_model_plot.png')
+    # plot_model(ensemble_model, show_shapes=True, to_file='ensemble_model_plot.png')
     ensemble_model.save("ensemble_model")
 
     # finally, evaluate the ensamble performance

@@ -13,7 +13,7 @@ def get_grid_search_parameters(model: str) -> dict:
     elif model == "lr":
         parameters = { 
             "lr_cv__Cs" : [1, 10],
-            "lr_cv__cv" : [0, 5, 10],
+            "lr_cv__cv" : [5, 10],
             "lr_cv__max_iter" : [50, 100, 200],
             "lr_cv__n_jobs" : [-1],
         }

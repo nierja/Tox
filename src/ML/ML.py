@@ -41,6 +41,13 @@ parser.add_argument("--model", default="lr", type=str, help="Model to use")
 parser.add_argument("--scaler", default="StandardScaler", type=str, help="defines scaler to preprocess data")
 
 def main(args: argparse.Namespace) -> list:
+    # prepare the directory structure
+    os.system('export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python')
+    try:
+        os.makedirs('./results/logs')
+    except OSError:
+        pass
+    os.chdir('./src/ML')
     # We are training a model.
     np.random.seed(args.seed)
     positive_PCA_features, positive_vis_features = [], []
