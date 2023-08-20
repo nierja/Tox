@@ -1,10 +1,10 @@
 # Chemical Toxicity Prediction
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nierja/tox/blob/master/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/release)
 [![TensorFlow](https://img.shields.io/badge/tensorflow-2.0%2B-orange.svg)](https://www.tensorflow.org)
 [![Keras](https://img.shields.io/badge/keras-2.3%2B-red.svg)](https://keras.io)
 [![Keras Tuner](https://img.shields.io/badge/keras__tuner-1.0%2B-yellow.svg)](https://github.com/keras-team/keras-tuner)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/nierja/tox/blob/master/LICENSE)
 
 ## Overview
 
