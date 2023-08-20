@@ -8,13 +8,13 @@
 
 ## Overview
 
-This project explores the application of traditional machine-learning and deep-learning for predicting molecular toxicity. It tackles the challenge of toxicity prediction by generating ~20 different molecular representations and compares their performance on a large variety of models. This code was used for my Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235).
+This project explores the application of traditional machine learning and deep learning for predicting molecular toxicity. It tackles the challenge of toxicity prediction by generating ~20 different molecular representations and compares their performance on a large variety of models. This code was used for my Master Thesis [Quantitative structure-activity relationship and machine learning](https://dspace.cuni.cz/handle/20.500.11956/181235).
 
 ## Features
 
-- Utilizes TensorFlow and Keras for building and training deep neural network.
+- Utilizes TensorFlow and Keras for building and training deep neural networks.
 - Implements hyperparameter tuning using the [HyperBand algorithm](https://arxiv.org/abs/1603.06560)
-- Supports cross-validation, ensemble modeling, various dimensionality reduction techniques and evaluation of key metrics.
+- Supports cross-validation, ensemble modeling, various dimensionality reduction techniques, and evaluation of key metrics.
 - Conducts extensive cleaning and preprocessing of chemical data
 - Offers a wide variety of molecular representations and models
 
@@ -26,7 +26,7 @@ This project explores the application of traditional machine-learning and deep-l
 
 ## Installation
 
-1. Clone the repository, install all dependencies into a virtual environment and activate it:
+1. Clone the repository, install all dependencies into a virtual environment, and activate it:
 
    ```sh
    git clone https://github.com/nierja/tox.git
@@ -38,7 +38,7 @@ This project explores the application of traditional machine-learning and deep-l
 
 ## Usage
 
-1. Generate desired descriptors for the training, validation and test datasets by running:
+1. Generate desired descriptors for the training, validation, and test datasets by running:
 
    ```python
    python3 src/descriptor_generation/generate.py
@@ -46,7 +46,7 @@ This project explores the application of traditional machine-learning and deep-l
 
     For generating all descriptors across all targets, uncomment their names in `generate.py`.
 
-2. Tune the hyperpadameters and train the machine learning and deep learning models:
+2. Tune the hyperparameters and train the machine learning and deep learning models:
 
    ```python
    python3 src/DL/Tox21_tuner.py
@@ -59,7 +59,7 @@ This project explores the application of traditional machine-learning and deep-l
    python3 src/DL/Tox21_tuner.py --target=NR-AR --NN_type=DNN --n_layers=4 --fp=maccs
    ```
 
-## Resultss
+## Results
 
 This repository contains code for building a pipeline for toxicity prediction. Various 2D and 3D fingerprints are generated using RDKit and Mordred, and their suitability as molecular representations can be compared on a large variety of machine-learning and deep-learning models. 
 
